@@ -68,11 +68,11 @@ function DashboardPage() {
         if (m.centuria_id) cc.set(m.centuria_id, (cc.get(m.centuria_id) ?? 0) + 1);
       }
       counts.porFalange = Array.from(fc.entries())
-        .map(([id, qt]) => ({ nome: fmap.get(id) ?? "—", qt }))
+        .map(([id, qt]) => ({ nome: (fmap.get(id) as string | undefined) ?? "—", qt }))
         .sort((a, b) => b.qt - a.qt)
         .slice(0, 8);
       counts.porCenturia = Array.from(cc.entries())
-        .map(([id, qt]) => ({ nome: cmap.get(id) ?? "—", qt }))
+        .map(([id, qt]) => ({ nome: (cmap.get(id) as string | undefined) ?? "—", qt }))
         .sort((a, b) => b.qt - a.qt)
         .slice(0, 8);
       setC(counts);
