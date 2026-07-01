@@ -449,7 +449,36 @@ INSERT INTO public.falanges (templo_id, nome, categoria) VALUES
   (NULL, 'Magos', 'mestre'),
   (NULL, 'Príncipes', 'mestre')
 ON CONFLICT DO NOTHING;
+
+-- --------- STORAGE BUCKETS ---------
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('mediuns-fotos','mediuns-fotos', true)
+ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('mediuns-docs','mediuns-docs', false)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage policies
+DROP POLICY IF EXISTS "fotos_read" ON storage.objects;
+CREATE POLICY "fotos_read" ON storage.objects FOR SELECT
+  USING (bucket_id = 'mediuns-fotos');
+DROP POLICY IF EXISTS "fotos_write" ON storage.objects;
+CREATE POLICY "fotos_write" ON storage.objects FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'mediuns-fotos');
+DROP POLICY IF EXISTS "fotos_update" ON storage.objects;
+CREATE POLICY "fotos_update" ON storage.objects FOR UPDATE TO authenticated
+  USING (bucket_id = 'mediuns-fotos');
+DROP POLICY IF EXISTS "fotos_delete" ON storage.objects;
+CREATE POLICY "fotos_delete" ON storage.objects FOR DELETE TO authenticated
+  USING (bucket_id = 'mediuns-fotos');
+
+DROP POLICY IF EXISTS "docs_all" ON storage.objects;
+CREATE POLICY "docs_all" ON storage.objects FOR ALL TO authenticated
+  USING (bucket_id = 'mediuns-docs')
+  WITH CHECK (bucket_id = 'mediuns-docs');
 `;
+
 
 Deno.serve(async (_req) => {
 
