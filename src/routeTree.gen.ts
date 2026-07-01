@@ -14,7 +14,13 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
+import { Route as AppConfiguracoesRouteImport } from './routes/app.configuracoes'
+import { Route as AppBuscarRouteImport } from './routes/app.buscar'
+import { Route as AppAdminRouteImport } from './routes/app.admin'
 import { Route as AppMediunsIndexRouteImport } from './routes/app.mediuns.index'
+import { Route as AppMediunsNewRouteImport } from './routes/app.mediuns.new'
+import { Route as AppMediunsIdIndexRouteImport } from './routes/app.mediuns.$id.index'
+import { Route as AppMediunsIdEditRouteImport } from './routes/app.mediuns.$id.edit'
 
 const OnboardingRoute = OnboardingRouteImport.update({
   id: '/onboarding',
@@ -41,9 +47,39 @@ const AppDashboardRoute = AppDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AppRoute,
 } as any)
+const AppConfiguracoesRoute = AppConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppBuscarRoute = AppBuscarRouteImport.update({
+  id: '/buscar',
+  path: '/buscar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMediunsIndexRoute = AppMediunsIndexRouteImport.update({
   id: '/mediuns/',
   path: '/mediuns/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMediunsNewRoute = AppMediunsNewRouteImport.update({
+  id: '/mediuns/new',
+  path: '/mediuns/new',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMediunsIdIndexRoute = AppMediunsIdIndexRouteImport.update({
+  id: '/mediuns/$id/',
+  path: '/mediuns/$id/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppMediunsIdEditRoute = AppMediunsIdEditRouteImport.update({
+  id: '/mediuns/$id/edit',
+  path: '/mediuns/$id/edit',
   getParentRoute: () => AppRoute,
 } as any)
 
@@ -52,16 +88,28 @@ export interface FileRoutesByFullPath {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/app/admin': typeof AppAdminRoute
+  '/app/buscar': typeof AppBuscarRoute
+  '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/mediuns/new': typeof AppMediunsNewRoute
   '/app/mediuns/': typeof AppMediunsIndexRoute
+  '/app/mediuns/$id/edit': typeof AppMediunsIdEditRoute
+  '/app/mediuns/$id/': typeof AppMediunsIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/app/admin': typeof AppAdminRoute
+  '/app/buscar': typeof AppBuscarRoute
+  '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/mediuns/new': typeof AppMediunsNewRoute
   '/app/mediuns': typeof AppMediunsIndexRoute
+  '/app/mediuns/$id/edit': typeof AppMediunsIdEditRoute
+  '/app/mediuns/$id': typeof AppMediunsIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -69,8 +117,14 @@ export interface FileRoutesById {
   '/app': typeof AppRouteWithChildren
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
+  '/app/admin': typeof AppAdminRoute
+  '/app/buscar': typeof AppBuscarRoute
+  '/app/configuracoes': typeof AppConfiguracoesRoute
   '/app/dashboard': typeof AppDashboardRoute
+  '/app/mediuns/new': typeof AppMediunsNewRoute
   '/app/mediuns/': typeof AppMediunsIndexRoute
+  '/app/mediuns/$id/edit': typeof AppMediunsIdEditRoute
+  '/app/mediuns/$id/': typeof AppMediunsIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -79,24 +133,42 @@ export interface FileRouteTypes {
     | '/app'
     | '/login'
     | '/onboarding'
+    | '/app/admin'
+    | '/app/buscar'
+    | '/app/configuracoes'
     | '/app/dashboard'
+    | '/app/mediuns/new'
     | '/app/mediuns/'
+    | '/app/mediuns/$id/edit'
+    | '/app/mediuns/$id/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/app'
     | '/login'
     | '/onboarding'
+    | '/app/admin'
+    | '/app/buscar'
+    | '/app/configuracoes'
     | '/app/dashboard'
+    | '/app/mediuns/new'
     | '/app/mediuns'
+    | '/app/mediuns/$id/edit'
+    | '/app/mediuns/$id'
   id:
     | '__root__'
     | '/'
     | '/app'
     | '/login'
     | '/onboarding'
+    | '/app/admin'
+    | '/app/buscar'
+    | '/app/configuracoes'
     | '/app/dashboard'
+    | '/app/mediuns/new'
     | '/app/mediuns/'
+    | '/app/mediuns/$id/edit'
+    | '/app/mediuns/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -143,6 +215,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppDashboardRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/configuracoes': {
+      id: '/app/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/app/configuracoes'
+      preLoaderRoute: typeof AppConfiguracoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/buscar': {
+      id: '/app/buscar'
+      path: '/buscar'
+      fullPath: '/app/buscar'
+      preLoaderRoute: typeof AppBuscarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/admin': {
+      id: '/app/admin'
+      path: '/admin'
+      fullPath: '/app/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/mediuns/': {
       id: '/app/mediuns/'
       path: '/mediuns'
@@ -150,17 +243,50 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppMediunsIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/mediuns/new': {
+      id: '/app/mediuns/new'
+      path: '/mediuns/new'
+      fullPath: '/app/mediuns/new'
+      preLoaderRoute: typeof AppMediunsNewRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/mediuns/$id/': {
+      id: '/app/mediuns/$id/'
+      path: '/mediuns/$id'
+      fullPath: '/app/mediuns/$id/'
+      preLoaderRoute: typeof AppMediunsIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/mediuns/$id/edit': {
+      id: '/app/mediuns/$id/edit'
+      path: '/mediuns/$id/edit'
+      fullPath: '/app/mediuns/$id/edit'
+      preLoaderRoute: typeof AppMediunsIdEditRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppAdminRoute: typeof AppAdminRoute
+  AppBuscarRoute: typeof AppBuscarRoute
+  AppConfiguracoesRoute: typeof AppConfiguracoesRoute
   AppDashboardRoute: typeof AppDashboardRoute
+  AppMediunsNewRoute: typeof AppMediunsNewRoute
   AppMediunsIndexRoute: typeof AppMediunsIndexRoute
+  AppMediunsIdEditRoute: typeof AppMediunsIdEditRoute
+  AppMediunsIdIndexRoute: typeof AppMediunsIdIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAdminRoute: AppAdminRoute,
+  AppBuscarRoute: AppBuscarRoute,
+  AppConfiguracoesRoute: AppConfiguracoesRoute,
   AppDashboardRoute: AppDashboardRoute,
+  AppMediunsNewRoute: AppMediunsNewRoute,
   AppMediunsIndexRoute: AppMediunsIndexRoute,
+  AppMediunsIdEditRoute: AppMediunsIdEditRoute,
+  AppMediunsIdIndexRoute: AppMediunsIdIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
