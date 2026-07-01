@@ -46,13 +46,13 @@ export function useSession(): SessionState {
 
   useEffect(() => {
     let mounted = true;
-    supabase.auth.getSession().then(async ({ data }) => {
+    supabase.auth.getSession().then(async ({ data }: { data: { session: Session | null } }) => {
       if (!mounted) return;
       setSession(data.session);
       await load(data.session?.user.id);
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange(async (_e: string, s: Session | null) => {
       setSession(s);
       await load(s?.user.id);
       setLoading(false);
