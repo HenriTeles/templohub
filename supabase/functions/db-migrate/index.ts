@@ -480,7 +480,11 @@ CREATE POLICY "docs_all" ON storage.objects FOR ALL TO authenticated
 `;
 
 
-Deno.serve(async (_req) => {
+Deno.serve(async (req) => {
+  const authHeader = req.headers.get("authorization") ?? "";
+  const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
+  if (authHeader !== expected) return new Response("forbidden", { status: 403 });
+
 
 
   const dbUrl = Deno.env.get("SUPABASE_DB_URL");
