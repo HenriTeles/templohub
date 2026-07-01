@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Users, Search, Settings, ShieldCheck, LogOut } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { db as supabase } from "@/lib/db";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
