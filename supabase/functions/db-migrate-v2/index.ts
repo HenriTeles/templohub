@@ -12,14 +12,14 @@ const NINFA_FALANGES = [
 ];
 const MESTRE_FALANGES = ["Magos","Príncipe Maya"];
 
-const seedValues = [
-  ...NINFA_FALANGES.map((n) => `(${quote(n)}, 'ninfa')`),
-  ...MESTRE_FALANGES.map((n) => `(${quote(n)}, 'mestre')`),
-].join(",\n  ");
-
 function quote(s: string) {
   return `'${s.replace(/'/g, "''")}'`;
 }
+
+const seedValues = [
+  ...NINFA_FALANGES.map((n) => `(NULL, ${quote(n)}, 'ninfa')`),
+  ...MESTRE_FALANGES.map((n) => `(NULL, ${quote(n)}, 'mestre')`),
+].join(",\n  ");
 
 const SQL = `
 -- 1) Super admin cleanup: detach from any templo, delete templos they created solo
