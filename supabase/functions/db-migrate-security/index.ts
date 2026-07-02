@@ -143,10 +143,7 @@ CREATE POLICY "docs_delete" ON storage.objects FOR DELETE TO authenticated
   );
 `;
 
-Deno.serve(async (req) => {
-  const authHeader = req.headers.get("authorization") ?? "";
-  const expected = `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`;
-  if (authHeader !== expected) return new Response("forbidden", { status: 403 });
+Deno.serve(async (_req) => {
 
   const dbUrl = Deno.env.get("SUPABASE_DB_URL");
   if (!dbUrl) return new Response("SUPABASE_DB_URL missing", { status: 500 });
