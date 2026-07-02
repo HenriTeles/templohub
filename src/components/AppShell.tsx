@@ -30,10 +30,16 @@ export function AppShell({ children }: { children: ReactNode }) {
     return null;
   }
 
-  if (!s.roles.includes("super_admin") && (!s.templo || s.templo.status !== "ativo")) {
+  const isSuper = s.roles.includes("super_admin");
+
+  if (!isSuper && (!s.templo || s.templo.status !== "ativo")) {
     nav({ to: "/onboarding" });
     return null;
   }
+
+  const navItems = isSuper
+    ? ([{ to: "/app/admin", label: "Painel Global", icon: ShieldCheck }] as const)
+    : NAV;
 
   const Sidebar = (
     <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col h-full">
@@ -45,13 +51,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div>
             <div className="font-semibold text-base">TemploHub</div>
             <div className="text-xs text-sidebar-foreground/70 truncate max-w-[10rem]">
-              {s.templo?.nome ?? "Super Administração"}
+              {isSuper ? "Super Administração" : s.templo?.nome ?? ""}
             </div>
           </div>
         </div>
       </div>
       <nav className="flex-1 p-3 space-y-1">
-        {NAV.map((n) => {
+        {navItems.map((n) => {
           const active = path.startsWith(n.to);
           return (
             <Link
@@ -70,21 +76,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           );
         })}
-        {s.roles.includes("super_admin") && (
-          <Link
-            to="/app/admin"
-            onClick={() => setOpen(false)}
-            className={cn(
-              "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
-              path.startsWith("/app/admin")
-                ? "bg-sidebar-accent text-sidebar-primary"
-                : "hover:bg-sidebar-accent/60 text-sidebar-foreground/90",
-            )}
-          >
-            <ShieldCheck className="w-4 h-4" />
-            Super Admin
-          </Link>
-        )}
       </nav>
       <div className="p-3 border-t border-sidebar-border text-xs text-sidebar-foreground/80 space-y-2">
         <div className="truncate">{s.profile?.email}</div>
