@@ -20,7 +20,7 @@ export const Route = createFileRoute("/app/mediuns/$id/edit")({
   component: EditMedium,
 });
 
-type Option = { id: string; nome: string };
+type Option = { id: string; nome: string; categoria?: string | null };
 type Form = Record<string, string | null>;
 
 const SITUACOES = [
@@ -46,7 +46,7 @@ function EditMedium() {
     if (!s.templo?.id) return;
     (async () => {
       const [{ data: fs }, { data: cs }] = await Promise.all([
-        db.from("falanges").select("id, nome").or(`templo_id.eq.${s.templo!.id},templo_id.is.null`).order("nome"),
+        db.from("falanges").select("id, nome, categoria").is("templo_id", null).order("nome"),
         db.from("centurias").select("id, nome").eq("templo_id", s.templo!.id).order("nome"),
       ]);
       setFalanges((fs ?? []) as Option[]);
@@ -193,7 +193,10 @@ function EditMedium() {
           <CardContent className="grid md:grid-cols-3 gap-4">
             <div className="space-y-1.5">
               <Label>Função</Label>
-              <Select value={(form.funcao as string) ?? ""} onValueChange={set("funcao")}>
+              <Select
+                value={(form.funcao as string) ?? ""}
+                onValueChange={(v) => setForm((f) => ({ ...f, funcao: v, falange_id: null }))}
+              >
                 <SelectTrigger><SelectValue placeholder="Mestre / Ninfa" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="mestre">Mestre</SelectItem>
@@ -202,7 +205,7 @@ function EditMedium() {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label>Polaridade</Label>
+              <Label>Mediunidade</Label>
               <Select value={(form.polaridade as string) ?? ""} onValueChange={set("polaridade")}>
                 <SelectTrigger><SelectValue placeholder="Apará / Doutrinador" /></SelectTrigger>
                 <SelectContent>
@@ -213,22 +216,76 @@ function EditMedium() {
             </div>
             <div className="space-y-1.5">
               <Label>Falange</Label>
-              <Select value={(form.falange_id as string) ?? ""} onValueChange={set("falange_id")}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+              <Select
+                value={(form.falange_id as string) ?? ""}
+                onValueChange={set("falange_id")}
+                disabled={!form.funcao}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={form.funcao ? "Selecione" : "Escolha a função primeiro"} />
+                </SelectTrigger>
                 <SelectContent>
-                  {falanges.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                  {falanges
+                    .filter((f) => !form.funcao || f.categoria === form.funcao)
+                    .map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
                 </SelectContent>
               </Select>
+            </div>
+
+            {form.funcao === "ninfa" && (
+              <div className="space-y-1.5">
+                <Label>Guia Missionária</Label>
+                <Input
+                  value={(form.guia_missionaria as string) ?? ""}
+                  onChange={(e) => set("guia_missionaria")(e.target.value)}
+                  placeholder="Em breve (lista suspensa)"
+                />
+              </div>
+            )}
+
+            {form.funcao === "mestre" && (
+              <>
+                <div className="space-y-1.5">
+                  <Label>Ministro</Label>
+                  <Input
+                    value={(form.ministro as string) ?? ""}
+                    onChange={(e) => set("ministro")(e.target.value)}
+                    placeholder="Nome do Ministro"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Cavaleiro</Label>
+                  <Input
+                    value={(form.cavaleiro as string) ?? ""}
+                    onChange={(e) => set("cavaleiro")(e.target.value)}
+                    placeholder="Nome do Cavaleiro"
+                  />
+                </div>
+              </>
+            )}
+
+            <div className="space-y-1.5">
+              <Label>Preto-velho / Preta-velha</Label>
+              <Input
+                value={(form.preto_velho as string) ?? ""}
+                onChange={(e) => set("preto_velho")(e.target.value)}
+              />
             </div>
             <div className="space-y-1.5">
-              <Label>Falange Missionária</Label>
-              <Select value={(form.falange_missionaria_id as string) ?? ""} onValueChange={set("falange_missionaria_id")}>
-                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                <SelectContent>
-                  {falanges.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
-                </SelectContent>
-              </Select>
+              <Label>Caboclo / Cabocla</Label>
+              <Input
+                value={(form.caboclo as string) ?? ""}
+                onChange={(e) => set("caboclo")(e.target.value)}
+              />
             </div>
+            <div className="space-y-1.5">
+              <Label>Médico(a) de Cura</Label>
+              <Input
+                value={(form.medico_cura as string) ?? ""}
+                onChange={(e) => set("medico_cura")(e.target.value)}
+              />
+            </div>
+
             <div className="space-y-1.5">
               <Label>Centúria</Label>
               <Select value={(form.centuria_id as string) ?? ""} onValueChange={set("centuria_id")}>

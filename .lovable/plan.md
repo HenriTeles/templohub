@@ -1,78 +1,84 @@
-# TemploHub — Plano do MVP
+## Objetivo
 
-Sistema SaaS multi-tenant para gestão administrativa de templos do Vale do Amanhecer. Este primeiro build entrega uma base sólida (auth, isolamento por templo, cadastro completo de médiuns com foto, tabelas administrativas configuráveis, dashboard e busca). Histórico automático, observações com anexos, relatórios avançados, PDF/carteirinha e portal do médium ficam para iterações seguintes.
+Corrigir 4 pontos: (1) super admin sendo tratado como templo, (2) lentidão de carregamento, (3) formulário de médium condicional por função + novos campos, (4) falanges duplicadas no dropdown.
 
-## Identidade visual
+---
 
-- Paleta: branco `#FFFFFF`, azul profundo `#0B1F4D`, dourado `#C9A24B`, violeta suave `#B7A7D9`, cinza claro `#F2F3F7`.
-- Tipografia: Playfair Display (títulos, tom espiritual/editorial) + Inter (UI/corpo).
-- Estética sóbria: cartões arredondados, muito espaço em branco, detalhes dourados discretos, sem ícones místicos exagerados.
-- Layout com sidebar fixa (colapsável) + header com busca rápida.
+## 1. Super admin não é um templo
 
-## Escopo desta entrega (MVP enxuto)
+**Backend (migração)**
+- Se `henriquetelesdorosario@hotmail.com` tem `templo_id` no `profiles`, limpar (`UPDATE profiles SET templo_id = NULL WHERE id = <super_admin>`), remover o vínculo `admin` do templo criado por engano em `user_roles`, e apagar o `templo` órfão (o que ficou pendente/ativo criado por ele).
+- Ajustar `create_templo_request` para bloquear super admins (`IF is_super_admin(auth.uid()) THEN RAISE EXCEPTION 'super admins do not belong to templos'`).
 
-**Incluído**
-- Autenticação e-mail/senha (Lovable Cloud) + recuperação de senha em `/reset-password`.
-- Onboarding: qualquer visitante cria conta e solicita registro de um templo → fica `pendente` até aprovação do super admin.
-- Papéis: `super_admin` (global), `admin` (do templo), `secretario` (cadastra/edita), `consulta` (somente leitura).
-- Multi-tenant com isolamento absoluto via RLS (usuário só enxerga o próprio templo; super admin enxerga todos).
-- Cadastro completo de médiuns com todos os campos pedidos (dados pessoais, doutrinários, desenvolvimento, particularidades, mentores).
-- Upload de foto do médium com crop + compressão + miniatura no Storage.
-- Tabelas administrativas configuráveis: falanges, centúrias, mentores, situações, adjurações, trinos, povos, legiões, reinos.
-- Dashboard: totais (médiuns, mestres, ninfas, aparás, doutrinadores), quantidade por falange e centúria, últimos cadastros, próximos aniversariantes, busca rápida.
-- Perfil do médium em cartões (Dados Pessoais, Doutrinários, Desenvolvimento, Particularidades, Mentores). Blocos de Histórico/Observações/Documentos ficam como placeholders "em breve".
-- Pesquisa com filtros: nome, CPF, falange, situação, mestre/ninfa, apará/doutrinador, centúria, cidade.
-- Tela de administração do super admin: aprovar/rejeitar templos pendentes, listar templos.
-- Tela de administração do admin do templo: gerenciar usuários do próprio templo e editar tabelas configuráveis.
-- Responsivo (desktop, tablet, mobile).
+**Frontend**
+- `src/routes/index.tsx`: se `roles.includes('super_admin')`, redirecionar direto para `/app/admin` (nunca para `/onboarding`).
+- `AppShell.tsx`: para super admin, ocultar itens do menu específicos de templo (Dashboard/Médiuns/Buscar/Configurações) e mostrar apenas "Super Admin"; o rótulo da sidebar deve dizer "Super Administração" sem exigir templo.
+- `onboarding.tsx`: se super admin cair aqui, redirecionar para `/app/admin`.
 
-**Fora do MVP (próximas iterações)**
-- Timeline de histórico automático com auditoria de alterações.
-- Observações ricas com anexos (PDF/imagens) no Storage.
-- Geração de PDF (ficha, carteirinha) e relatórios avançados.
-- Notificações WhatsApp, portal do médium, QR Code, assinatura eletrônica, financeiro, agenda, etc.
+---
 
-## Detalhes técnicos
+## 2. Dashboard do super admin (visão global + edição de templos)
 
-**Stack:** TanStack Start + React + TypeScript + Tailwind v4 + shadcn/ui + TanStack Query + Lovable Cloud (Supabase gerenciado).
+Reformular `src/routes/app.admin.tsx` para virar o dashboard do super admin:
+- **KPIs globais**: total de templos (ativos/pendentes/suspensos), total de médiuns em todo o sistema, total de mestres/ninfas, novos templos e médiuns nos últimos 30 dias.
+- **Gráfico**: médiuns por templo (top 10).
+- **Lista de templos** com busca por nome/cidade/UF, filtros por status, e ações inline: aprovar, rejeitar/suspender, reativar, **editar** (nome, cidade, estado, status) via modal, e ver contagem de médiuns do templo.
+- Ações extras: alternar status ativo/suspenso, editar dados básicos do templo.
+- Adicionar RPC `update_templo(_id, _nome, _cidade, _estado, _status)` restrita a super admin (a policy atual já bloqueia UPDATE geral). Alternativamente, ajustar policy de UPDATE em `templos` para permitir `is_super_admin(auth.uid())`.
 
-**Modelo de dados (schema `public`):**
-- `templos` — id, nome, cidade, estado, status (`pendente`|`ativo`|`suspenso`), created_by, timestamps.
-- `profiles` — id (=auth.users.id), templo_id (nullable até aprovação), nome, email, created_at.
-- `app_role` enum: `super_admin`, `admin`, `secretario`, `consulta`.
-- `user_roles` — (user_id, role, templo_id nullable). Roles NUNCA ficam em `profiles`.
-- `mediuns` — todos os campos pessoais + doutrinários + desenvolvimento + particularidades + FKs para falange/centúria/mentores. templo_id obrigatório. Índices em (templo_id, nome), (templo_id, cpf), (templo_id, situacao).
-- Tabelas configuráveis (todas com `templo_id` para permitir customização por templo, mais seed global copiado no onboarding): `falanges`, `centurias`, `mentores` (com tipo: cavaleiro, ministro, preto_velho, caboclo, medico_cura, guia_missionaria, princesa, preta_velha, cabocla, medica_cura), `situacoes`, `adjuracoes`, `trinos`, `povos`, `legioes`, `reinos`.
-- `mediun_mentores` — join table (mediun_id, mentor_id, papel) para mapear os mentores por médium conforme sexo/função.
-- Placeholders para expansão futura: `historico`, `anexos`, `configuracoes` (criadas vazias com RLS pronta).
+---
 
-**Segurança:**
-- Função `SECURITY DEFINER` `public.has_role(_user_id, _role)` e `public.user_templo(_user_id)` para evitar recursão nas policies.
-- RLS em todas as tabelas. Padrão: `SELECT/INSERT/UPDATE/DELETE` permitido apenas quando `templo_id = user_templo(auth.uid())` OU `has_role(auth.uid(), 'super_admin')`. Escrita adicionalmente exige papel `admin`/`secretario` (consulta = só SELECT).
-- `GRANT`s explícitos em todas as tabelas do `public` para `authenticated` e `service_role` (sem `anon`).
-- Trigger em `auth.users` cria `profiles` automaticamente.
-- Super admin promovido manualmente via migration (primeiro usuário definido pelo dono do projeto) — combinamos qual e-mail após aprovar o plano.
-- Storage: bucket privado `mediuns-fotos` com policies que só permitem ao usuário ler/gravar arquivos sob o prefixo do seu `templo_id`.
+## 3. Corrigir lentidão de carregamento
 
-**Rotas (TanStack Router, file-based):**
-- Públicas: `/`, `/auth` (login/cadastro), `/reset-password`, `/onboarding` (registrar novo templo após signup).
-- Protegidas (`/_authenticated/...`): `/dashboard`, `/mediuns`, `/mediuns/novo`, `/mediuns/$id`, `/mediuns/$id/editar`, `/admin` (usuários e tabelas configuráveis), `/admin/templos` (só super admin: aprovações), `/perfil`.
+Causas identificadas em `src/lib/session.ts` e no fluxo de gateway:
+- `useSession` roda `load()` duas vezes na entrada: uma no `getSession()` e outra no `onAuthStateChange` (evento `INITIAL_SESSION`).
+- Cada `load()` faz 3 queries sequenciais (profiles, user_roles, templos).
+- Cada rota do app (`AppShell`, `index`, `dashboard`, `onboarding`) instancia `useSession` independente → refazendo tudo do zero N vezes.
 
-**Componentização:** formulários divididos em seções (`DadosPessoaisForm`, `DadosDoutrinariosForm`, `DesenvolvimentoForm`, `ParticularidadesForm`, `MentoresForm`) reutilizando um `MediumForm` para novo/editar. Hook `useMediuns`, `useTemplo`, `useRole`.
+**Correções**
+- Compartilhar sessão via `React Context` (`SessionProvider` no `__root.tsx`) — um único fetch para toda a app.
+- No `load()`, filtrar `onAuthStateChange` para reagir apenas a `SIGNED_IN`/`SIGNED_OUT`/`USER_UPDATED` (ignorar `INITIAL_SESSION` e `TOKEN_REFRESHED`), como recomenda o guia.
+- Buscar profile + user_roles + templo em paralelo (uma única promise combinada).
+- Mostrar o `AppShell` renderizado imediatamente enquanto sessão carrega (skeleton) em vez de tela em branco central que remonta a árvore.
 
-## Etapas de implementação
+---
 
-1. Habilitar Lovable Cloud, configurar tema Tailwind (paleta + fontes) e shell autenticado (sidebar + header).
-2. Migration inicial: enums, tabelas, funções `has_role`/`user_templo`, RLS, GRANTs, trigger de profile, seed de falanges/situações/mentores padrão do Vale do Amanhecer.
-3. Fluxo de auth: `/auth`, `/reset-password`, `/onboarding` (cria templo pendente), gate `_authenticated`, tela "aguardando aprovação".
-4. Área super admin: aprovar/rejeitar templos.
-5. CRUD de médiuns + upload de foto (crop/compressão) no Storage.
-6. Perfil do médium em cartões.
-7. Dashboard com totais e aniversariantes.
-8. Busca com filtros.
-9. Admin do templo: gerenciar usuários e tabelas configuráveis.
-10. Ajustes de responsividade e polimento visual.
+## 4. Formulário de médium — Particularidades Mediúnicas condicional
 
-## Pergunta pendente para começar
+**Seed de falanges (migração)**
+- Limpar as falanges globais atuais e reinserir com a categoria correta:
+  - `categoria = 'ninfa'`: Nityama, Samaritana, Grega, Maya, Yurici, Muruayci, Dharman Oxinto, Jaçanã, Ariana da Estrela Testemunha, Madalena de Cássia, Franciscana, Narayama, Rochana, Cayçara, Tupinambá, Cigana Aganara, Cigana Tagana, Agulha Ysmênia, Nyatra.
+  - `categoria = 'mestre'`: Magos, Príncipe Maya.
+- Remover cópias duplicadas por templo (o `approve_templo` copiava globais para o templo — remover essa cópia e sempre ler do global). Ajustar `approve_templo` para não replicar mais.
+- Novas colunas em `mediuns` (nullable, texto livre): `guia_missionaria`, `ministro`, `cavaleiro`, `preto_velho`, `caboclo`, `medico_cura`.
 
-Preciso do e-mail que deve virar `super_admin` inicial (posso deixar um placeholder e você me diz depois — mas se já souber, aplico direto na migration).
+**Frontend (`app.mediuns.$id.edit.tsx`)**
+- Carregar falanges filtrando por `categoria` = função selecionada; se função vazia, dropdown desabilitado.
+- Renomear rótulo "Polaridade" → "Mediunidade" (valores continuam `apara`/`doutrinador` internamente).
+- Substituir o bloco Particularidades Mediúnicas por layout condicional:
+
+  Comum (sempre exibido, nesta ordem):
+  1. Função (Mestre / Ninfa)
+  2. Mediunidade (Apará / Doutrinador)
+  3. Falange (dropdown filtrado por função)
+
+  Se `funcao = 'ninfa'`:
+  4. Guia Missionária (dropdown — placeholder por enquanto, será preenchido pelo usuário depois; renderizar como Select vazio com aviso "Em breve" ou input livre)
+
+  Se `funcao = 'mestre'`:
+  4. Ministro (input texto livre)
+  5. Cavaleiro (input texto livre)
+
+  Ambos (na sequência final):
+  6. Preto-velho / Preta-velha (input texto livre)
+  7. Caboclo / Cabocla (input texto livre)
+  8. Médico(a) de cura (input texto livre)
+
+- Remover o segundo "Falange Missionária" duplicado (bug do dropdown repetido).
+- Corrigir também o fato do dropdown atual listar templo-scoped + global juntos: passar a ler somente `templo_id IS NULL` (globais) filtrado por categoria.
+
+---
+
+## Fora do escopo
+- Não mexer no CRUD geral de médiuns, dashboard normal, busca, storage, RLS de storage — já validados.
+- Guias missionárias ficam como campo em branco/placeholder; o usuário fornecerá a lista depois.
