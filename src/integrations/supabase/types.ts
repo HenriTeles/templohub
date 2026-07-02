@@ -14,16 +14,751 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      adjuracoes: {
+        Row: {
+          id: string
+          nome: string
+          templo_id: string | null
+        }
+        Insert: {
+          id?: string
+          nome: string
+          templo_id?: string | null
+        }
+        Update: {
+          id?: string
+          nome?: string
+          templo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "adjuracoes_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      anexos: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          mediun_id: string | null
+          mime_type: string | null
+          nome: string
+          size_bytes: number | null
+          storage_path: string
+          templo_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mediun_id?: string | null
+          mime_type?: string | null
+          nome: string
+          size_bytes?: number | null
+          storage_path: string
+          templo_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          mediun_id?: string | null
+          mime_type?: string | null
+          nome?: string
+          size_bytes?: number | null
+          storage_path?: string
+          templo_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anexos_mediun_id_fkey"
+            columns: ["mediun_id"]
+            isOneToOne: false
+            referencedRelation: "mediuns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "anexos_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      centurias: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          templo_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          templo_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          templo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "centurias_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      configuracoes: {
+        Row: {
+          config: Json
+          templo_id: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          templo_id: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          templo_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "configuracoes_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: true
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      falanges: {
+        Row: {
+          categoria: string | null
+          created_at: string
+          id: string
+          nome: string
+          templo_id: string | null
+        }
+        Insert: {
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          templo_id?: string | null
+        }
+        Update: {
+          categoria?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          templo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "falanges_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      historico: {
+        Row: {
+          acao: string
+          created_at: string
+          detalhes: Json | null
+          id: string
+          mediun_id: string | null
+          templo_id: string
+          user_id: string | null
+        }
+        Insert: {
+          acao: string
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          mediun_id?: string | null
+          templo_id: string
+          user_id?: string | null
+        }
+        Update: {
+          acao?: string
+          created_at?: string
+          detalhes?: Json | null
+          id?: string
+          mediun_id?: string | null
+          templo_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "historico_mediun_id_fkey"
+            columns: ["mediun_id"]
+            isOneToOne: false
+            referencedRelation: "mediuns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "historico_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      legioes: {
+        Row: {
+          id: string
+          nome: string
+          templo_id: string | null
+        }
+        Insert: {
+          id?: string
+          nome: string
+          templo_id?: string | null
+        }
+        Update: {
+          id?: string
+          nome?: string
+          templo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "legioes_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mediun_mentores: {
+        Row: {
+          created_at: string
+          id: string
+          mediun_id: string
+          mentor_id: string
+          templo_id: string
+          tipo: Database["public"]["Enums"]["mentor_tipo"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          mediun_id: string
+          mentor_id: string
+          templo_id: string
+          tipo: Database["public"]["Enums"]["mentor_tipo"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          mediun_id?: string
+          mentor_id?: string
+          templo_id?: string
+          tipo?: Database["public"]["Enums"]["mentor_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mediun_mentores_mediun_id_fkey"
+            columns: ["mediun_id"]
+            isOneToOne: false
+            referencedRelation: "mediuns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediun_mentores_mentor_id_fkey"
+            columns: ["mentor_id"]
+            isOneToOne: false
+            referencedRelation: "mentores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediun_mentores_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mediuns: {
+        Row: {
+          adjuracao_id: string | null
+          centuria_id: string | null
+          cep: string | null
+          cidade: string | null
+          cpf: string | null
+          created_at: string
+          created_by: string | null
+          data_centuria: string | null
+          data_consagracao: string | null
+          data_elevacao_espadas: string | null
+          data_emplacamento: string | null
+          data_ingresso: string | null
+          data_inicio_desenvolvimento: string | null
+          data_nascimento: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          estado_civil: string | null
+          falange_id: string | null
+          falange_missionaria_id: string | null
+          foto_path: string | null
+          funcao: Database["public"]["Enums"]["mediun_funcao"] | null
+          id: string
+          legiao_id: string | null
+          nacionalidade: string | null
+          nome_completo: string
+          nome_emissao: string | null
+          nome_mae: string | null
+          nome_pai: string | null
+          numero_ficha: string | null
+          polaridade: Database["public"]["Enums"]["mediun_polaridade"] | null
+          povo_id: string | null
+          profissao: string | null
+          reino_id: string | null
+          rg: string | null
+          sexo: Database["public"]["Enums"]["mediun_sexo"] | null
+          situacao: Database["public"]["Enums"]["mediun_situacao"]
+          telefone: string | null
+          templo_id: string
+          trino_id: string | null
+          updated_at: string
+          whatsapp: string | null
+        }
+        Insert: {
+          adjuracao_id?: string | null
+          centuria_id?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_centuria?: string | null
+          data_consagracao?: string | null
+          data_elevacao_espadas?: string | null
+          data_emplacamento?: string | null
+          data_ingresso?: string | null
+          data_inicio_desenvolvimento?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          estado_civil?: string | null
+          falange_id?: string | null
+          falange_missionaria_id?: string | null
+          foto_path?: string | null
+          funcao?: Database["public"]["Enums"]["mediun_funcao"] | null
+          id?: string
+          legiao_id?: string | null
+          nacionalidade?: string | null
+          nome_completo: string
+          nome_emissao?: string | null
+          nome_mae?: string | null
+          nome_pai?: string | null
+          numero_ficha?: string | null
+          polaridade?: Database["public"]["Enums"]["mediun_polaridade"] | null
+          povo_id?: string | null
+          profissao?: string | null
+          reino_id?: string | null
+          rg?: string | null
+          sexo?: Database["public"]["Enums"]["mediun_sexo"] | null
+          situacao?: Database["public"]["Enums"]["mediun_situacao"]
+          telefone?: string | null
+          templo_id: string
+          trino_id?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Update: {
+          adjuracao_id?: string | null
+          centuria_id?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cpf?: string | null
+          created_at?: string
+          created_by?: string | null
+          data_centuria?: string | null
+          data_consagracao?: string | null
+          data_elevacao_espadas?: string | null
+          data_emplacamento?: string | null
+          data_ingresso?: string | null
+          data_inicio_desenvolvimento?: string | null
+          data_nascimento?: string | null
+          email?: string | null
+          endereco?: string | null
+          estado?: string | null
+          estado_civil?: string | null
+          falange_id?: string | null
+          falange_missionaria_id?: string | null
+          foto_path?: string | null
+          funcao?: Database["public"]["Enums"]["mediun_funcao"] | null
+          id?: string
+          legiao_id?: string | null
+          nacionalidade?: string | null
+          nome_completo?: string
+          nome_emissao?: string | null
+          nome_mae?: string | null
+          nome_pai?: string | null
+          numero_ficha?: string | null
+          polaridade?: Database["public"]["Enums"]["mediun_polaridade"] | null
+          povo_id?: string | null
+          profissao?: string | null
+          reino_id?: string | null
+          rg?: string | null
+          sexo?: Database["public"]["Enums"]["mediun_sexo"] | null
+          situacao?: Database["public"]["Enums"]["mediun_situacao"]
+          telefone?: string | null
+          templo_id?: string
+          trino_id?: string | null
+          updated_at?: string
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mediuns_adjuracao_id_fkey"
+            columns: ["adjuracao_id"]
+            isOneToOne: false
+            referencedRelation: "adjuracoes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediuns_centuria_id_fkey"
+            columns: ["centuria_id"]
+            isOneToOne: false
+            referencedRelation: "centurias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediuns_falange_id_fkey"
+            columns: ["falange_id"]
+            isOneToOne: false
+            referencedRelation: "falanges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediuns_falange_missionaria_id_fkey"
+            columns: ["falange_missionaria_id"]
+            isOneToOne: false
+            referencedRelation: "falanges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediuns_legiao_id_fkey"
+            columns: ["legiao_id"]
+            isOneToOne: false
+            referencedRelation: "legioes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediuns_povo_id_fkey"
+            columns: ["povo_id"]
+            isOneToOne: false
+            referencedRelation: "povos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediuns_reino_id_fkey"
+            columns: ["reino_id"]
+            isOneToOne: false
+            referencedRelation: "reinos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediuns_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mediuns_trino_id_fkey"
+            columns: ["trino_id"]
+            isOneToOne: false
+            referencedRelation: "trinos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mentores: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+          templo_id: string | null
+          tipo: Database["public"]["Enums"]["mentor_tipo"]
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+          templo_id?: string | null
+          tipo: Database["public"]["Enums"]["mentor_tipo"]
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
+          templo_id?: string | null
+          tipo?: Database["public"]["Enums"]["mentor_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mentores_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      povos: {
+        Row: {
+          id: string
+          nome: string
+          templo_id: string | null
+        }
+        Insert: {
+          id?: string
+          nome: string
+          templo_id?: string | null
+        }
+        Update: {
+          id?: string
+          nome?: string
+          templo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "povos_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+          templo_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          nome?: string | null
+          templo_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          templo_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reinos: {
+        Row: {
+          id: string
+          nome: string
+          templo_id: string | null
+        }
+        Insert: {
+          id?: string
+          nome: string
+          templo_id?: string | null
+        }
+        Update: {
+          id?: string
+          nome?: string
+          templo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reinos_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      templos: {
+        Row: {
+          cidade: string | null
+          created_at: string
+          created_by: string | null
+          estado: string | null
+          id: string
+          nome: string
+          status: Database["public"]["Enums"]["templo_status"]
+          updated_at: string
+        }
+        Insert: {
+          cidade?: string | null
+          created_at?: string
+          created_by?: string | null
+          estado?: string | null
+          id?: string
+          nome: string
+          status?: Database["public"]["Enums"]["templo_status"]
+          updated_at?: string
+        }
+        Update: {
+          cidade?: string | null
+          created_at?: string
+          created_by?: string | null
+          estado?: string | null
+          id?: string
+          nome?: string
+          status?: Database["public"]["Enums"]["templo_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      trinos: {
+        Row: {
+          id: string
+          nome: string
+          templo_id: string | null
+        }
+        Insert: {
+          id?: string
+          nome: string
+          templo_id?: string | null
+        }
+        Update: {
+          id?: string
+          nome?: string
+          templo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trinos_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          templo_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          templo_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          templo_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      approve_templo: { Args: { _templo_id: string }; Returns: undefined }
+      can_write_templo: {
+        Args: { _templo_id: string; _user_id: string }
+        Returns: boolean
+      }
+      create_templo_request: {
+        Args: { _cidade: string; _estado: string; _nome: string }
+        Returns: string
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
+      promote_super_admin_by_email: {
+        Args: { _email: string }
+        Returns: undefined
+      }
+      reject_templo: { Args: { _templo_id: string }; Returns: undefined }
+      user_templo: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "super_admin" | "admin" | "secretario" | "consulta"
+      mediun_funcao: "mestre" | "ninfa"
+      mediun_polaridade: "apara" | "doutrinador"
+      mediun_sexo: "masculino" | "feminino"
+      mediun_situacao:
+        | "ativo"
+        | "em_desenvolvimento"
+        | "licenciado"
+        | "afastado"
+        | "desligado"
+      mentor_tipo:
+        | "cavaleiro"
+        | "ministro"
+        | "preto_velho"
+        | "caboclo"
+        | "medico_cura"
+        | "guia_missionaria"
+        | "princesa"
+        | "preta_velha"
+        | "cabocla"
+        | "medica_cura"
+      templo_status: "pendente" | "ativo" | "suspenso"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +885,31 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["super_admin", "admin", "secretario", "consulta"],
+      mediun_funcao: ["mestre", "ninfa"],
+      mediun_polaridade: ["apara", "doutrinador"],
+      mediun_sexo: ["masculino", "feminino"],
+      mediun_situacao: [
+        "ativo",
+        "em_desenvolvimento",
+        "licenciado",
+        "afastado",
+        "desligado",
+      ],
+      mentor_tipo: [
+        "cavaleiro",
+        "ministro",
+        "preto_velho",
+        "caboclo",
+        "medico_cura",
+        "guia_missionaria",
+        "princesa",
+        "preta_velha",
+        "cabocla",
+        "medica_cura",
+      ],
+      templo_status: ["pendente", "ativo", "suspenso"],
+    },
   },
 } as const
