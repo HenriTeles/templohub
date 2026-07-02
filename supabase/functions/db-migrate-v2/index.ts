@@ -157,7 +157,7 @@ DELETE FROM public.falanges WHERE templo_id IS NOT NULL;
 DELETE FROM public.falanges WHERE templo_id IS NULL;
 
 INSERT INTO public.falanges (templo_id, nome, categoria) VALUES
-  ${seedValues.split(",\n  ").map((v) => `(NULL, ${v})`).join(",\n  ")};
+  ${seedValues};
 `;
 
 Deno.serve(async () => {
