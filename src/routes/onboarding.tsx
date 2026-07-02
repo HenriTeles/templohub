@@ -27,6 +27,11 @@ function OnboardingPage() {
     return null;
   }
 
+  if (s.roles.includes("super_admin")) {
+    nav({ to: "/app/admin" });
+    return null;
+  }
+
   if (s.templo) {
     return (
       <div className="min-h-screen bg-background p-6 flex items-center justify-center">

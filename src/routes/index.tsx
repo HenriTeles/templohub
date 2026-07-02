@@ -12,7 +12,8 @@ function Gateway() {
   useEffect(() => {
     if (s.loading) return;
     if (!s.session) nav({ to: "/login" });
-    else if (!s.profile?.templo_id && !s.roles.includes("super_admin")) nav({ to: "/onboarding" });
+    else if (s.roles.includes("super_admin")) nav({ to: "/app/admin" });
+    else if (!s.profile?.templo_id) nav({ to: "/onboarding" });
     else nav({ to: "/app/dashboard" });
   }, [s.loading, s.session, s.profile, s.roles, nav]);
   return (
