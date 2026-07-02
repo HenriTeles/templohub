@@ -20,7 +20,7 @@ export const Route = createFileRoute("/app/mediuns/$id/edit")({
   component: EditMedium,
 });
 
-type Option = { id: string; nome: string };
+type Option = { id: string; nome: string; categoria?: string | null };
 type Form = Record<string, string | null>;
 
 const SITUACOES = [
@@ -46,7 +46,7 @@ function EditMedium() {
     if (!s.templo?.id) return;
     (async () => {
       const [{ data: fs }, { data: cs }] = await Promise.all([
-        db.from("falanges").select("id, nome").or(`templo_id.eq.${s.templo!.id},templo_id.is.null`).order("nome"),
+        db.from("falanges").select("id, nome, categoria").is("templo_id", null).order("nome"),
         db.from("centurias").select("id, nome").eq("templo_id", s.templo!.id).order("nome"),
       ]);
       setFalanges((fs ?? []) as Option[]);
