@@ -42,7 +42,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (templo_id && !rr.includes("super_admin")) {
       const { data: t } = await supabase
         .from("templos")
-        .select("id, nome, status")
+        .select("id, nome, status, logo_path")
         .eq("id", templo_id)
         .maybeSingle();
       setTemplo(t as SessionState["templo"]);
