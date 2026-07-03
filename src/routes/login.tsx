@@ -55,11 +55,12 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary via-primary to-[oklch(0.35_0.1_280)] p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-2">
-          <div className="mx-auto w-12 h-12 rounded-full bg-accent flex items-center justify-center text-primary font-serif text-2xl font-bold">
-            ✦
-          </div>
-          <CardTitle className="text-2xl">TemploHub</CardTitle>
-          <CardDescription>
+          <img
+            src={logoAsset.url}
+            alt="TemploHub"
+            className="mx-auto h-28 w-auto"
+          />
+          <CardTitle className="sr-only">TemploHub</CardTitle>
             {mode === "signin" && "Acesse sua conta"}
             {mode === "signup" && "Crie sua conta de dirigente"}
             {mode === "reset" && "Recuperar acesso"}
