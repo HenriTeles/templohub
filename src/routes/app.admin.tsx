@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Building2, Users, Clock, CheckCircle2, XCircle, Pencil, Search } from "lucide-react";
+import { LogoUploader } from "@/components/LogoUploader";
+import { CustomFieldsManager } from "@/components/CustomFieldsManager";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
