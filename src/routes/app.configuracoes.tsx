@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
+import { LogoUploader } from "@/components/LogoUploader";
+import { CustomFieldsManager } from "@/components/CustomFieldsManager";
 
 export const Route = createFileRoute("/app/configuracoes")({ component: ConfigPage });
 
@@ -23,7 +25,7 @@ function CrudList({ table, label, extra }: { table: string; label: string; extra
     setItems((data ?? []) as Item[]);
   };
 
-  useEffect(() => { reload(); }, [s.templo?.id]);
+  useEffect(() => { reload(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [s.templo?.id]);
 
   const add = async () => {
     if (!nome.trim() || !s.templo?.id) return;
@@ -72,13 +74,51 @@ function CrudList({ table, label, extra }: { table: string; label: string; extra
   );
 }
 
+function TempleLogoCard() {
+  const s = useSession();
+  if (!s.templo?.id) return null;
+
+  const save = async (path: string | null) => {
+    const { error } = await db.from("templos").update({ logo_path: path }).eq("id", s.templo!.id);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    await s.refresh();
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Foto do templo</CardTitle>
+        <CardDescription>Aparece no menu lateral para todos os membros deste templo.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <LogoUploader
+          bucket="templos-logos"
+          currentPath={s.templo.logo_path}
+          buildKey={(fileName) => `${s.templo!.id}/logo-${Date.now()}-${fileName}`}
+          onSaved={save}
+          label="Foto"
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
 function ConfigPage() {
+  const s = useSession();
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       <div>
         <h1 className="text-2xl font-semibold">Configurações</h1>
-        <p className="text-sm text-muted-foreground">Gerencie tabelas doutrinárias deste templo</p>
+        <p className="text-sm text-muted-foreground">Gerencie a identidade e tabelas doutrinárias deste templo</p>
       </div>
+
+      <TempleLogoCard />
+
+      {s.templo?.id && <CustomFieldsManager scope="templo" temploId={s.templo.id} />}
+
       <div className="grid md:grid-cols-2 gap-4">
         <CrudList table="falanges" label="Falanges" />
         <CrudList table="centurias" label="Centúrias" />
