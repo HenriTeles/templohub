@@ -61,7 +61,7 @@ function LoginPage() {
             className="mx-auto h-28 w-auto"
           />
           <CardTitle className="sr-only">TemploHub</CardTitle>
-            {mode === "signin" && "Acesse sua conta"}
+          <CardDescription>
             {mode === "signup" && "Crie sua conta de dirigente"}
             {mode === "reset" && "Recuperar acesso"}
           </CardDescription>
