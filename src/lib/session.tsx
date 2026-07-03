@@ -9,7 +9,7 @@ export type SessionState = {
   session: Session | null;
   userId: string | null;
   profile: { id: string; templo_id: string | null; nome: string | null; email: string | null } | null;
-  templo: { id: string; nome: string; status: string } | null;
+  templo: { id: string; nome: string; status: string; logo_path: string | null } | null;
   roles: Role[];
   refresh: () => Promise<void>;
 };
