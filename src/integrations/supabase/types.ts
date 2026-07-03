@@ -301,6 +301,8 @@ export type Database = {
       mediuns: {
         Row: {
           adjuracao_id: string | null
+          caboclo: string | null
+          cavaleiro: string | null
           centuria_id: string | null
           cep: string | null
           cidade: string | null
@@ -322,8 +324,11 @@ export type Database = {
           falange_missionaria_id: string | null
           foto_path: string | null
           funcao: Database["public"]["Enums"]["mediun_funcao"] | null
+          guia_missionaria: string | null
           id: string
           legiao_id: string | null
+          medico_cura: string | null
+          ministro: string | null
           nacionalidade: string | null
           nome_completo: string
           nome_emissao: string | null
@@ -332,6 +337,7 @@ export type Database = {
           numero_ficha: string | null
           polaridade: Database["public"]["Enums"]["mediun_polaridade"] | null
           povo_id: string | null
+          preto_velho: string | null
           profissao: string | null
           reino_id: string | null
           rg: string | null
@@ -345,6 +351,8 @@ export type Database = {
         }
         Insert: {
           adjuracao_id?: string | null
+          caboclo?: string | null
+          cavaleiro?: string | null
           centuria_id?: string | null
           cep?: string | null
           cidade?: string | null
@@ -366,8 +374,11 @@ export type Database = {
           falange_missionaria_id?: string | null
           foto_path?: string | null
           funcao?: Database["public"]["Enums"]["mediun_funcao"] | null
+          guia_missionaria?: string | null
           id?: string
           legiao_id?: string | null
+          medico_cura?: string | null
+          ministro?: string | null
           nacionalidade?: string | null
           nome_completo: string
           nome_emissao?: string | null
@@ -376,6 +387,7 @@ export type Database = {
           numero_ficha?: string | null
           polaridade?: Database["public"]["Enums"]["mediun_polaridade"] | null
           povo_id?: string | null
+          preto_velho?: string | null
           profissao?: string | null
           reino_id?: string | null
           rg?: string | null
@@ -389,6 +401,8 @@ export type Database = {
         }
         Update: {
           adjuracao_id?: string | null
+          caboclo?: string | null
+          cavaleiro?: string | null
           centuria_id?: string | null
           cep?: string | null
           cidade?: string | null
@@ -410,8 +424,11 @@ export type Database = {
           falange_missionaria_id?: string | null
           foto_path?: string | null
           funcao?: Database["public"]["Enums"]["mediun_funcao"] | null
+          guia_missionaria?: string | null
           id?: string
           legiao_id?: string | null
+          medico_cura?: string | null
+          ministro?: string | null
           nacionalidade?: string | null
           nome_completo?: string
           nome_emissao?: string | null
@@ -420,6 +437,7 @@ export type Database = {
           numero_ficha?: string | null
           polaridade?: Database["public"]["Enums"]["mediun_polaridade"] | null
           povo_id?: string | null
+          preto_velho?: string | null
           profissao?: string | null
           reino_id?: string | null
           rg?: string | null
@@ -734,6 +752,16 @@ export type Database = {
         Returns: undefined
       }
       reject_templo: { Args: { _templo_id: string }; Returns: undefined }
+      update_templo: {
+        Args: {
+          _cidade: string
+          _estado: string
+          _nome: string
+          _status: Database["public"]["Enums"]["templo_status"]
+          _templo_id: string
+        }
+        Returns: undefined
+      }
       user_templo: { Args: { _user_id: string }; Returns: string }
     }
     Enums: {
