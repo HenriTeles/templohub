@@ -67,8 +67,12 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       // avoid duplicate work when SIGNED_IN fires for the same user we already loaded
       if (event === "SIGNED_IN" && uid === lastUid.current && profile) return;
       lastUid.current = uid;
-      setSession(s);
+      // Mark loading BEFORE exposing the new session so route gates (e.g. "/")
+      // don't observe { session: signed-in, profile: null } and mistake it for
+      // "no templo" → redirect to /onboarding.
+      setLoading(true);
       await load(uid);
+      setSession(s);
       setLoading(false);
     });
     return () => {
