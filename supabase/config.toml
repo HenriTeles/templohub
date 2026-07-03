@@ -1,4 +1,1 @@
 project_id = "jmrylbfhbsiaxttttxns"
-
-[functions.db-migrate-security-v3]
-verify_jwt = false
