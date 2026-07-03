@@ -9,7 +9,7 @@ export type SessionState = {
   session: Session | null;
   userId: string | null;
   profile: { id: string; templo_id: string | null; nome: string | null; email: string | null } | null;
-  templo: { id: string; nome: string; status: string } | null;
+  templo: { id: string; nome: string; status: string; logo_path: string | null } | null;
   roles: Role[];
   refresh: () => Promise<void>;
 };
@@ -42,7 +42,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (templo_id && !rr.includes("super_admin")) {
       const { data: t } = await supabase
         .from("templos")
-        .select("id, nome, status")
+        .select("id, nome, status, logo_path")
         .eq("id", templo_id)
         .maybeSingle();
       setTemplo(t as SessionState["templo"]);

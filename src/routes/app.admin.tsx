@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { Building2, Users, Clock, CheckCircle2, XCircle, Pencil, Search } from "lucide-react";
+import { LogoUploader } from "@/components/LogoUploader";
+import { CustomFieldsManager } from "@/components/CustomFieldsManager";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -250,8 +252,68 @@ function AdminPage() {
         </CardContent>
       </Card>
 
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <BrandingCard />
+        <Card>
+          <CardHeader><CardTitle className="text-base">Sobre a Super Administração</CardTitle></CardHeader>
+          <CardContent className="text-sm text-muted-foreground space-y-2">
+            <p>Use esta área para administrar a marca do TemploHub, aprovar novos templos e criar campos que aparecem em todas as fichas de médium.</p>
+            <p>Campos globais valem para todos os templos. Cada templo pode adicionar campos próprios em Configurações.</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <CustomFieldsManager scope="global" />
+
       <EditTemploDialog templo={editing} onClose={() => setEditing(null)} onSaved={load} />
     </div>
+  );
+}
+
+function BrandingCard() {
+  const [logoPath, setLogoPath] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  const load = async () => {
+    const { data } = await db.from("app_settings").select("logo_path").eq("id", 1).maybeSingle();
+    setLogoPath((data as { logo_path: string | null } | null)?.logo_path ?? null);
+    setLoaded(true);
+  };
+
+  useEffect(() => { load(); }, []);
+
+  const save = async (path: string | null) => {
+    const { error } = await db
+      .from("app_settings")
+      .update({ logo_path: path, updated_at: new Date().toISOString() })
+      .eq("id", 1);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    setLogoPath(path);
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Identidade visual do TemploHub</CardTitle>
+      </CardHeader>
+      <CardContent>
+        {loaded ? (
+          <LogoUploader
+            bucket="app-branding"
+            currentPath={logoPath}
+            buildKey={(fileName) => `logo-${Date.now()}-${fileName}`}
+            onSaved={save}
+            label="Logo do sistema"
+            helper="Aparece no menu lateral para todos os usuários."
+          />
+        ) : (
+          <p className="text-sm text-muted-foreground">Carregando…</p>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
