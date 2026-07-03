@@ -91,6 +91,27 @@ export type Database = {
           },
         ]
       }
+      app_settings: {
+        Row: {
+          id: number
+          logo_path: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          id?: number
+          logo_path?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          id?: number
+          logo_path?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       centurias: {
         Row: {
           created_at: string
@@ -249,6 +270,105 @@ export type Database = {
           },
         ]
       }
+      medium_custom_fields: {
+        Row: {
+          chave: string
+          created_at: string
+          id: string
+          label: string
+          obrigatorio: boolean
+          opcoes: Json | null
+          ordem: number
+          parent_field_id: string | null
+          templo_id: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          chave: string
+          created_at?: string
+          id?: string
+          label: string
+          obrigatorio?: boolean
+          opcoes?: Json | null
+          ordem?: number
+          parent_field_id?: string | null
+          templo_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Update: {
+          chave?: string
+          created_at?: string
+          id?: string
+          label?: string
+          obrigatorio?: boolean
+          opcoes?: Json | null
+          ordem?: number
+          parent_field_id?: string | null
+          templo_id?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medium_custom_fields_parent_field_id_fkey"
+            columns: ["parent_field_id"]
+            isOneToOne: false
+            referencedRelation: "medium_custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medium_custom_fields_templo_id_fkey"
+            columns: ["templo_id"]
+            isOneToOne: false
+            referencedRelation: "templos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medium_custom_values: {
+        Row: {
+          created_at: string
+          field_id: string
+          id: string
+          mediun_id: string
+          updated_at: string
+          valor: string | null
+        }
+        Insert: {
+          created_at?: string
+          field_id: string
+          id?: string
+          mediun_id: string
+          updated_at?: string
+          valor?: string | null
+        }
+        Update: {
+          created_at?: string
+          field_id?: string
+          id?: string
+          mediun_id?: string
+          updated_at?: string
+          valor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medium_custom_values_field_id_fkey"
+            columns: ["field_id"]
+            isOneToOne: false
+            referencedRelation: "medium_custom_fields"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medium_custom_values_mediun_id_fkey"
+            columns: ["mediun_id"]
+            isOneToOne: false
+            referencedRelation: "mediuns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       mediun_mentores: {
         Row: {
           created_at: string
@@ -316,6 +436,7 @@ export type Database = {
           data_ingresso: string | null
           data_inicio_desenvolvimento: string | null
           data_nascimento: string | null
+          doenca_descricao: string | null
           email: string | null
           endereco: string | null
           estado: string | null
@@ -327,7 +448,11 @@ export type Database = {
           guia_missionaria: string | null
           id: string
           legiao_id: string | null
+          medicamento_controlado: boolean | null
+          medicamentos: string | null
+          medico_crm: string | null
           medico_cura: string | null
+          medico_prescritor: string | null
           ministro: string | null
           nacionalidade: string | null
           nome_completo: string
@@ -336,6 +461,8 @@ export type Database = {
           nome_pai: string | null
           numero_ficha: string | null
           polaridade: Database["public"]["Enums"]["mediun_polaridade"] | null
+          posologia: string | null
+          possui_doenca: boolean | null
           povo_id: string | null
           preto_velho: string | null
           profissao: string | null
@@ -345,6 +472,7 @@ export type Database = {
           situacao: Database["public"]["Enums"]["mediun_situacao"]
           telefone: string | null
           templo_id: string
+          tipo_sanguineo: string | null
           trino_id: string | null
           updated_at: string
           whatsapp: string | null
@@ -366,6 +494,7 @@ export type Database = {
           data_ingresso?: string | null
           data_inicio_desenvolvimento?: string | null
           data_nascimento?: string | null
+          doenca_descricao?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
@@ -377,7 +506,11 @@ export type Database = {
           guia_missionaria?: string | null
           id?: string
           legiao_id?: string | null
+          medicamento_controlado?: boolean | null
+          medicamentos?: string | null
+          medico_crm?: string | null
           medico_cura?: string | null
+          medico_prescritor?: string | null
           ministro?: string | null
           nacionalidade?: string | null
           nome_completo: string
@@ -386,6 +519,8 @@ export type Database = {
           nome_pai?: string | null
           numero_ficha?: string | null
           polaridade?: Database["public"]["Enums"]["mediun_polaridade"] | null
+          posologia?: string | null
+          possui_doenca?: boolean | null
           povo_id?: string | null
           preto_velho?: string | null
           profissao?: string | null
@@ -395,6 +530,7 @@ export type Database = {
           situacao?: Database["public"]["Enums"]["mediun_situacao"]
           telefone?: string | null
           templo_id: string
+          tipo_sanguineo?: string | null
           trino_id?: string | null
           updated_at?: string
           whatsapp?: string | null
@@ -416,6 +552,7 @@ export type Database = {
           data_ingresso?: string | null
           data_inicio_desenvolvimento?: string | null
           data_nascimento?: string | null
+          doenca_descricao?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
@@ -427,7 +564,11 @@ export type Database = {
           guia_missionaria?: string | null
           id?: string
           legiao_id?: string | null
+          medicamento_controlado?: boolean | null
+          medicamentos?: string | null
+          medico_crm?: string | null
           medico_cura?: string | null
+          medico_prescritor?: string | null
           ministro?: string | null
           nacionalidade?: string | null
           nome_completo?: string
@@ -436,6 +577,8 @@ export type Database = {
           nome_pai?: string | null
           numero_ficha?: string | null
           polaridade?: Database["public"]["Enums"]["mediun_polaridade"] | null
+          posologia?: string | null
+          possui_doenca?: boolean | null
           povo_id?: string | null
           preto_velho?: string | null
           profissao?: string | null
@@ -445,6 +588,7 @@ export type Database = {
           situacao?: Database["public"]["Enums"]["mediun_situacao"]
           telefone?: string | null
           templo_id?: string
+          tipo_sanguineo?: string | null
           trino_id?: string | null
           updated_at?: string
           whatsapp?: string | null
@@ -641,6 +785,7 @@ export type Database = {
           created_by: string | null
           estado: string | null
           id: string
+          logo_path: string | null
           nome: string
           status: Database["public"]["Enums"]["templo_status"]
           updated_at: string
@@ -651,6 +796,7 @@ export type Database = {
           created_by?: string | null
           estado?: string | null
           id?: string
+          logo_path?: string | null
           nome: string
           status?: Database["public"]["Enums"]["templo_status"]
           updated_at?: string
@@ -661,6 +807,7 @@ export type Database = {
           created_by?: string | null
           estado?: string | null
           id?: string
+          logo_path?: string | null
           nome?: string
           status?: Database["public"]["Enums"]["templo_status"]
           updated_at?: string
