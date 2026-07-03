@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pencil, ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import type { CustomField } from "@/components/CustomFieldsManager";
 
 export const Route = createFileRoute("/app/mediuns/$id/")({ component: MediumDetail });
 
@@ -24,6 +25,8 @@ function MediumDetail() {
   const [historico, setHistorico] = useState<Array<{ id: string; acao: string; created_at: string }>>([]);
   const [falangeNome, setFalangeNome] = useState<string | null>(null);
   const [centuriaNome, setCenturiaNome] = useState<string | null>(null);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [customValues, setCustomValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     (async () => {
@@ -50,8 +53,27 @@ function MediumDetail() {
         .eq("mediun_id", id)
         .order("created_at", { ascending: false });
       setHistorico((h ?? []) as typeof historico);
+
+      if (s.templo?.id) {
+        const { data: cf } = await db
+          .from("medium_custom_fields")
+          .select("*")
+          .or(`templo_id.is.null,templo_id.eq.${s.templo.id}`)
+          .order("ordem")
+          .order("created_at");
+        setCustomFields((cf ?? []) as CustomField[]);
+      }
+      const { data: vals } = await db
+        .from("medium_custom_values")
+        .select("field_id, valor")
+        .eq("mediun_id", id);
+      const map: Record<string, string> = {};
+      for (const v of (vals ?? []) as Array<{ field_id: string; valor: string | null }>) {
+        if (v.valor != null) map[v.field_id] = v.valor;
+      }
+      setCustomValues(map);
     })();
-  }, [id]);
+  }, [id, s.templo?.id]);
 
   const remove = async () => {
     if (!confirm("Excluir este médium?")) return;
@@ -68,7 +90,9 @@ function MediumDetail() {
   const info = (label: string, v: unknown) => (
     <div>
       <div className="text-[11px] uppercase tracking-wide text-muted-foreground">{label}</div>
-      <div className="text-sm">{(v as string) || "—"}</div>
+      <div className="text-sm">
+        {typeof v === "boolean" ? (v ? "Sim" : "Não") : ((v as string) || "—")}
+      </div>
     </div>
   );
 
@@ -90,46 +114,44 @@ function MediumDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[240px_1fr] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-4">
         <Card>
-          <CardContent className="p-4 space-y-3 text-center">
+          <CardContent className="p-3 space-y-2 text-center">
             {fotoUrl ? (
-              <img src={fotoUrl} alt="" className="w-full aspect-square object-cover rounded-lg" />
+              <img src={fotoUrl} alt="" className="w-full aspect-square object-cover rounded-md" />
             ) : (
-              <div className="w-full aspect-square rounded-lg bg-primary/10 text-primary flex items-center justify-center text-4xl font-serif">
+              <div className="w-full aspect-square rounded-md bg-primary/10 text-primary flex items-center justify-center text-2xl font-serif">
                 {m.nome_completo.charAt(0)}
               </div>
             )}
             <div>
-              <div className="font-semibold">{m.nome_completo}</div>
+              <div className="font-semibold text-sm leading-tight">{m.nome_completo}</div>
               {(m.nome_emissao as string) && (
-                <div className="text-xs text-muted-foreground">{m.nome_emissao as string}</div>
+                <div className="text-[11px] text-muted-foreground">{m.nome_emissao as string}</div>
               )}
             </div>
             <div className="flex flex-wrap gap-1 justify-center">
               {(m.funcao as string) && (
-                <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-accent/30 text-primary">{m.funcao as string}</span>
+                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-accent/30 text-primary">{m.funcao as string}</span>
               )}
               {(m.polaridade as string) && (
-                <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-primary/10 text-primary">{m.polaridade as string}</span>
+                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary">{m.polaridade as string}</span>
               )}
-              <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">{m.situacao as string}</span>
+              <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{m.situacao as string}</span>
             </div>
-            <div className="text-xs text-muted-foreground">{s.templo?.nome}</div>
           </CardContent>
         </Card>
 
         <div className="space-y-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">Dados Pessoais</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Informações Pessoais</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("CPF", m.cpf)}
-              {info("RG", m.rg)}
+              {info("Nome", m.nome_completo)}
+              {info("Nome de emissão", m.nome_emissao)}
               {info("Nascimento", m.data_nascimento)}
               {info("Sexo", m.sexo)}
-              {info("Estado civil", m.estado_civil)}
-              {info("Nacionalidade", m.nacionalidade)}
-              {info("Profissão", m.profissao)}
+              {info("Nome do pai", m.nome_pai)}
+              {info("Nome da mãe", m.nome_mae)}
               {info("Telefone", m.telefone)}
               {info("WhatsApp", m.whatsapp)}
               {info("E-mail", m.email)}
@@ -137,22 +159,50 @@ function MediumDetail() {
               {info("Cidade", m.cidade)}
               {info("Estado", m.estado)}
               {info("CEP", m.cep)}
+              {info("Tipo sanguíneo", m.tipo_sanguineo)}
+              {info("Medicamentos", m.medicamentos)}
+              {info("Posologia", m.posologia)}
+              {info("Medicamento controlado", m.medicamento_controlado)}
+              {info("Médico prescritor", m.medico_prescritor)}
+              {info("CRM", m.medico_crm)}
+              {info("Possui doença", m.possui_doenca)}
+              {info("Descrição da doença", m.doenca_descricao)}
             </CardContent>
           </Card>
+
           <Card>
-            <CardHeader><CardTitle className="text-base">Doutrinários / Desenvolvimento</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Informações Doutrinárias</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
               {info("Ficha nº", m.numero_ficha)}
               {info("Ingresso", m.data_ingresso)}
+              {info("Situação", m.situacao)}
               {info("Início Desenv.", m.data_inicio_desenvolvimento)}
               {info("Emplacamento", m.data_emplacamento)}
               {info("Elevação de Espadas", m.data_elevacao_espadas)}
               {info("Centúria (data)", m.data_centuria)}
               {info("Consagração", m.data_consagracao)}
+              {info("Função", m.funcao)}
+              {info("Mediunidade", m.polaridade)}
               {info("Falange", falangeNome)}
               {info("Centúria", centuriaNome)}
+              {m.funcao === "ninfa" && info("Guia Missionária", m.guia_missionaria)}
+              {m.funcao === "mestre" && info("Ministro", m.ministro)}
+              {m.funcao === "mestre" && info("Cavaleiro", m.cavaleiro)}
+              {info("Preto-velho", m.preto_velho)}
+              {info("Caboclo", m.caboclo)}
+              {info("Médico de Cura", m.medico_cura)}
             </CardContent>
           </Card>
+
+          {customFields.length > 0 && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">Campos personalizados</CardTitle></CardHeader>
+              <CardContent className="grid md:grid-cols-3 gap-3">
+                {customFields.map((f) => info(f.label, customValues[f.id]))}
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader><CardTitle className="text-base">Histórico</CardTitle></CardHeader>
             <CardContent>
@@ -172,6 +222,7 @@ function MediumDetail() {
               )}
             </CardContent>
           </Card>
+
           {(m.observacoes as string) && (
             <Card>
               <CardHeader><CardTitle className="text-base">Observações</CardTitle></CardHeader>
