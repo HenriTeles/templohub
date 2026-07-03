@@ -31,8 +31,10 @@ function MediumDetail() {
       if (!data) return;
       setM(data as Row);
       if (data.foto_path) {
-        const { data: signed } = await db.storage.from("mediuns-fotos").getPublicUrl(data.foto_path);
-        setFotoUrl(signed.publicUrl);
+        const { data: signed } = await db.storage
+          .from("mediuns-fotos")
+          .createSignedUrl(data.foto_path, 3600);
+        if (signed?.signedUrl) setFotoUrl(signed.signedUrl);
       }
       if (data.falange_id) {
         const { data: f } = await db.from("falanges").select("nome").eq("id", data.falange_id).maybeSingle();
