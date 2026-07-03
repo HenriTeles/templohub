@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import logoAsset from "@/assets/templohub-logo.png.asset.json";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
