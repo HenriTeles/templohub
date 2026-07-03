@@ -4,9 +4,10 @@ import { db as supabase } from "@/lib/db";
 import { useSession } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import defaultLogo from "@/assets/templohub-logo.png.asset.json";
 
 const NAV = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -15,11 +16,43 @@ const NAV = [
   { to: "/app/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
 
+function useBrandingLogo() {
+  const [url, setUrl] = useState<string>(defaultLogo.url);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.from("app_settings").select("logo_path").eq("id", 1).maybeSingle();
+      const path = (data as { logo_path: string | null } | null)?.logo_path;
+      if (!path) return;
+      const { data: signed } = await supabase.storage.from("app-branding").createSignedUrl(path, 3600);
+      if (alive && signed?.signedUrl) setUrl(signed.signedUrl);
+    })();
+    return () => { alive = false; };
+  }, []);
+  return url;
+}
+
+function useTemploLogo(path: string | null | undefined) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      if (!path) { setUrl(null); return; }
+      const { data } = await supabase.storage.from("templos-logos").createSignedUrl(path, 3600);
+      if (alive && data?.signedUrl) setUrl(data.signedUrl);
+    })();
+    return () => { alive = false; };
+  }, [path]);
+  return url;
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const s = useSession();
   const nav = useNavigate();
   const path = useRouterState({ select: (st) => st.location.pathname });
   const [open, setOpen] = useState(false);
+  const brandingLogo = useBrandingLogo();
+  const temploLogo = useTemploLogo(s.templo?.logo_path);
 
   if (s.loading) {
     return <div className="min-h-screen flex items-center justify-center bg-background">Carregando…</div>;
@@ -44,17 +77,25 @@ export function AppShell({ children }: { children: ReactNode }) {
   const Sidebar = (
     <aside className="w-64 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col h-full">
       <div className="p-6 border-b border-sidebar-border">
-        <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-full bg-sidebar-primary text-sidebar-primary-foreground flex items-center justify-center font-serif text-xl">
-            ✦
-          </div>
-          <div>
+        <div className="flex items-center gap-3">
+          <img src={brandingLogo} alt="TemploHub" className="w-10 h-10 object-contain rounded" />
+          <div className="min-w-0">
             <div className="font-semibold text-base">TemploHub</div>
             <div className="text-xs text-sidebar-foreground/70 truncate max-w-[10rem]">
               {isSuper ? "Super Administração" : s.templo?.nome ?? ""}
             </div>
           </div>
         </div>
+        {!isSuper && (temploLogo || s.templo?.nome) && (
+          <div className="mt-4 flex items-center gap-2 rounded-md bg-sidebar-accent/50 p-2">
+            {temploLogo ? (
+              <img src={temploLogo} alt="" className="w-8 h-8 object-cover rounded" />
+            ) : (
+              <div className="w-8 h-8 rounded bg-sidebar-primary/30" />
+            )}
+            <span className="text-xs truncate">{s.templo?.nome}</span>
+          </div>
+        )}
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {navItems.map((n) => {
