@@ -287,7 +287,10 @@ function BrandingCard() {
       .from("app_settings")
       .update({ logo_path: path, updated_at: new Date().toISOString() })
       .eq("id", 1);
-    if (error) return toast.error(error.message);
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
     setLogoPath(path);
   };
 
