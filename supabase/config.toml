@@ -1,1 +1,4 @@
 project_id = "jmrylbfhbsiaxttttxns"
+
+[functions.db-dump]
+verify_jwt = false
