@@ -13,10 +13,11 @@ Deno.serve(async (req) => {
   const client = new Client(dbUrl);
   try {
     await client.connect();
-    await client.queryArray(sql);
-    return new Response(JSON.stringify({ ok: true }), {
+    const result = await client.queryObject(sql);
+    return new Response(JSON.stringify({ ok: true, rows: result.rows, rowCount: result.rowCount }), {
       headers: { "content-type": "application/json" },
     });
+
   } catch (e: any) {
     return new Response(JSON.stringify({ ok: false, error: String(e?.message ?? e) }), {
       status: 500,
