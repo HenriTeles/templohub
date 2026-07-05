@@ -3,12 +3,9 @@
 import { Client } from "https://deno.land/x/postgres@v0.19.3/mod.ts";
 
 Deno.serve(async (req) => {
-  const token = req.headers.get("x-admin-token");
-  if (token !== Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")) {
-    return new Response("unauthorized", { status: 401 });
-  }
   const sql = await req.text();
   if (!sql.trim()) return new Response("empty sql", { status: 400 });
+
 
   const dbUrl = Deno.env.get("SUPABASE_DB_URL");
   if (!dbUrl) return new Response("SUPABASE_DB_URL missing", { status: 500 });
