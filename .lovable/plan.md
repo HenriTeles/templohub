@@ -1,59 +1,86 @@
-## Objetivo
+# Plano: Refazer ficha do médium + edit/remove de campos personalizados
 
-Recriar no novo Supabase (`vuqogpswsdzlxuaeidcw`) toda a estrutura que estava no Lovable Cloud: 19 tabelas, 7 enums, funções `SECURITY DEFINER`, triggers, RLS + policies, GRANTs, 4 buckets de Storage com suas policies, e os dados atualmente exportados.
+## Parte 1 — Editar/remover campos personalizados
 
-O dump reordenado já existe em `/mnt/documents/templohub-dump-v2.sql` (677 linhas, 33 INSERTs de dados). Vou aplicá-lo em blocos via a ferramenta de migração e criar os buckets via a ferramenta de storage.
+Em `src/components/CustomFieldsManager.tsx`:
 
-## O que será executado
+- Adicionar botão **Editar** (ícone lápis) em cada linha de `FieldRow`, ao lado do "remover".
+- Criar `EditFieldDialog` (baseado no `AddFieldDialog`) permitindo alterar **tudo**: rótulo (label), chave (regerada a partir do label ou editável manualmente com aviso), tipo, opções (para select), obrigatoriedade.
+- Aviso claro ao trocar o **tipo** ("valores já preenchidos podem ficar inválidos") exigindo confirmação.
+- Aviso ao trocar a **chave** ("pode quebrar integrações que dependem dela").
+- Ao salvar, `UPDATE medium_custom_fields SET ... WHERE id = ...`.
+- Botão remover já existe; manter.
 
-### 1. Buckets de Storage (via tool dedicada)
-Criar como **privados** (todos usam signed URLs no código):
-- `mediuns-docs`
-- `mediuns-fotos`
-- `app-branding`
-- `templos-logos`
+Nenhuma migração necessária — a tabela `medium_custom_fields` já suporta esses updates via RLS existente.
 
-### 2. Migração — Schema base
-- 7 ENUM types (`app_role`, `mediun_sexo`, `mediun_funcao`, `mediun_polaridade`, `mediun_situacao`, `mentor_tipo`, `templo_status`)
-- 19 tabelas em `public` (profiles, user_roles, templos, app_settings, configuracoes, adjuracoes, centurias, falanges, legioes, povos, reinos, trinos, mentores, mediuns, mediun_mentores, anexos, historico, medium_custom_fields, medium_custom_values)
-- Constraints na ordem correta: PKs → UNIQUEs → CHECKs → FKs (só do schema `public`; as FKs para `auth.users` ficam para depois)
-- Índices
+## Parte 2 — Refazer a ficha fixa do médium
 
-### 3. Migração — Funções e triggers
-- Funções `SECURITY DEFINER`: `has_role`, `is_super_admin`, `user_templo`, `can_write_templo`, `create_templo_request`, `approve_templo`, `reject_templo`, `update_templo`, `handle_new_user`, `promote_super_admin_by_email`, `set_updated_at`
-- Triggers `trg_updated_at` / `mcf_touch` / `mcv_touch`
-- `GRANT EXECUTE` para `authenticated` nas funções-helper de RLS (invariante já documentado no `.lovable/plan.md`)
+Reestruturar `src/routes/app.mediuns.new.tsx`, `app.mediuns.$id.edit.tsx` e `app.mediuns.$id.index.tsx` em **6 seções** conforme especificado, com **regras condicionais por gênero**.
 
-### 4. Migração — RLS e Policies
-- `ENABLE ROW LEVEL SECURITY` em todas as 19 tabelas
-- Todas as policies de SELECT/INSERT/UPDATE/DELETE (scoped por `templo_id`, `has_role`, `is_super_admin`)
-- `GRANT SELECT/INSERT/UPDATE/DELETE ... TO authenticated` + `GRANT ALL ... TO service_role` em cada tabela
+### Migração de schema (`mediuns`)
 
-### 5. Migração — Storage policies
-Recriar policies em `storage.objects` para os 4 buckets, mantendo o escopo por templo (path começa com `<templo_id>/…`), exceto `app-branding` que é global (SELECT para authenticated, escrita só super_admin).
+Colunas novas (todas nullable, defaults seguros):
 
-### 6. Migração — Dados existentes (33 INSERTs)
-`INSERT … ON CONFLICT DO NOTHING` das linhas atuais das tabelas doutrinárias globais (falanges, centúrias, adjurações, trinos, povos, legiões, reinos), do `app_settings`, do templo Vajaro, etc. **Não** insere `profiles`/`user_roles` porque dependem de `auth.users` (usuários serão recriados via signup normal).
+```
+data_ultima_classificacao   date
+data_iniciacao              date
+classe_elevacao             text   -- mestre_lua|mestre_sol|ninfa_lua|ninfa_sol
+falange_mestrado            text
+nome_emissao_centuria       text   -- (renomear/uso de nome_emissao existente)
+adjunto                     text
+falange_missionaria         text   -- enum textual (lista fixa por gênero)
+adjunto_devas               text
+lanca                       text
+adjunto_transito            text
+turno                       text
+turno_trabalho              text
+classificacao_medium        text
+data_setimo                 date
+data_recebimento_cavaleiro  date
+trino_id                    uuid references trinos(id)  -- já existe? verificar
+adjunto_povo                text
+filho_de_devas              text
+recepcionista               boolean default false
+```
 
-## O que fica de fora (e por quê)
+Verificar antes o que já existe em `mediuns` (56 colunas) — usar as existentes quando o nome bater (`data_emplacamento`, `data_elevacao_espadas`, `data_centuria`, `data_consagracao`, `ministro`, `cavaleiro`, `polaridade`, `funcao`, `guia_missionaria`, etc.) e só criar as que faltam. Renomear evitando quebrar dados existentes.
 
-- **FKs para `auth.users`** (`profiles.id → auth.users.id`, `user_roles.user_id → auth.users.id`, `app_settings.updated_by → auth.users.id`): não recriadas agora. Os usuários novos serão criados via signup normal do app e a trigger `handle_new_user` popula `profiles` automaticamente. Se você quiser preservar os UUIDs antigos, isso exige recriar os usuários via Admin API — posso fazer num passo seguinte.
-- **Arquivos de Storage**: os buckets serão criados vazios. A cópia dos objetos (logos, fotos, anexos) do bucket antigo do Lovable Cloud para o novo Supabase precisa ser feita fora (script Node com service_role) — está descrito em `/mnt/documents/MIGRACAO-SUPABASE.md`.
-- **Trigger `on_auth_user_created`** em `auth.users`: **é** criada normalmente (não modifica o schema `auth`, só anexa uma trigger que chama `public.handle_new_user`). Só é necessária para novos signups.
-- **Edge Functions**: `bootstrap-super-admin` continua existindo no repo; posso implantar depois se você usar.
+### Seções na UI (ordem)
 
-## Detalhes técnicos
+1. **Dados Gerais** — nome_completo, sexo (M/F), data_nascimento, nome_mae, nome_pai, data_ingresso, templo (readonly do templo atual), data_ultima_classificacao.
+2. **Mentores / Iniciação** — mentores (multi via `mediun_mentores` existente), data_emplacamento, data_iniciacao, polaridade (Apará | Doutrinador(a)).
+3. **Elevação de Espadas** — data_elevacao_espadas, classe_elevacao (dropdown filtrado por sexo: masc → mestre lua/sol; fem → ninfa lua/sol), falange_mestrado.
+4. **Centúria** — data_centuria, nome_emissao, povo, adjunto, **falange_missionaria** (dropdown; masc → Mago | Príncipe Maya; fem → lista fixa das 21 falanges), adjunto_devas, lanca, adjunto_transito, turno, turno_trabalho, ministro, cavaleiro.
+5. **Classificação do Médium** — classificacao_medium (texto).
+6. **Dados complementares** — data_ultima_classificacao, data_setimo, data_recebimento_cavaleiro, trino, adjunto_povo, filho_de_devas, recepcionista (checkbox).
 
-- Ordem de execução respeitada: buckets → enums → tabelas → constraints públicas → índices → funções → triggers → RLS/policies → grants → dados.
-- Migração dividida em múltiplas chamadas (schema, funções, policies, dados) para facilitar aprovação e rollback caso alguma parte falhe.
-- Nenhuma alteração no `.env` — as variáveis `VITE_SUPABASE_*` já foram atualizadas quando você conectou o projeto.
-- Nenhuma alteração no código do app é necessária: `src/integrations/supabase/client.ts` e `types.ts` já apontam para o novo projeto.
+### Regras condicionais
 
-## Depois que rodar
+Componente helper `<GenderConditional sexo={...}>` ou lógica no form:
 
-1. Fazer signup do super admin (`henriquetelesdorosario@hotmail.com`) na tela `/login`.
-2. Chamar `promote_super_admin_by_email('henriquetelesdorosario@hotmail.com')` via SQL para atribuir o role.
-3. Testar: login → deve cair em `/app/admin`.
-4. (Opcional) Rodar script de cópia de arquivos dos buckets antigos, se você tiver acesso ao projeto Lovable Cloud antigo.
+- `classe_elevacao` recalcula opções quando `sexo` muda; se o valor atual não pertence às opções novas → limpa.
+- `falange_missionaria` idem, com as duas listas fixas em constante:
 
-Posso prosseguir?
+```ts
+const FALANGES_FEM = ["Nityama/Madruxa", "Samaritana", "Grega", "Maya", "Yuricy", "Yuricy Lua", "Dharman-Oxinto", "Muruaicy", "Jaçanã", "Ariana da Estrela", "Testemunha", "Madalena de Cássia", "Franciscana", "Narayama", "Rochana", "Cayçara", "Tupinambás", "Cigana Aganara", "Cigana Tagana", "Agulha Ismênia", "Nyatra"];
+const FALANGES_MASC = ["Mago", "Príncipe Maya"];
+```
+
+### Página de detalhe
+
+`app.mediuns.$id.index.tsx` re-renderizado nas mesmas 6 seções (cards) na mesma ordem, ocultando campos vazios opcionalmente.
+
+## Arquivos a tocar
+
+- `src/components/CustomFieldsManager.tsx` — botão editar + dialog.
+- Migração SQL — colunas novas em `mediuns`.
+- `src/routes/app.mediuns.new.tsx` — formulário reorganizado em 6 seções.
+- `src/routes/app.mediuns.$id.edit.tsx` — mesma estrutura, prefill.
+- `src/routes/app.mediuns.$id.index.tsx` — detalhe nas 6 seções.
+- (possível) `src/lib/medium-fields.ts` — constantes de listas fixas e helpers de gênero.
+
+## Fora do escopo
+
+- Não altero a lista de tabelas doutrinárias (falanges/centúrias/etc.) já em Configurações.
+- Não mudo permissões nem RLS.
+- Anexos, histórico e campos personalizados continuam nas seções extras existentes na página de detalhe.

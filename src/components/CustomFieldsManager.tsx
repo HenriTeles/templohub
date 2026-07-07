@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Pencil } from "lucide-react";
 
 export type CustomField = {
   id: string;
@@ -46,6 +46,11 @@ function slugify(s: string) {
     .slice(0, 60);
 }
 
+type DialogState =
+  | { mode: "add"; parent: string | null }
+  | { mode: "edit"; field: CustomField }
+  | null;
+
 /**
  * scope="global"  → super admin manages templo_id = NULL
  * scope="templo"  → templo admin manages fields for a single templo_id
@@ -59,7 +64,7 @@ export function CustomFieldsManager({
 }) {
   const [fields, setFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(true);
-  const [adding, setAdding] = useState<{ parent: string | null } | null>(null);
+  const [dialog, setDialog] = useState<DialogState>(null);
 
   const load = async () => {
     setLoading(true);
@@ -102,7 +107,7 @@ export function CustomFieldsManager({
               : "Aparecem apenas nas fichas dos médiuns deste templo."}
           </CardDescription>
         </div>
-        <Button size="sm" onClick={() => setAdding({ parent: null })}>
+        <Button size="sm" onClick={() => setDialog({ mode: "add", parent: null })}>
           <Plus className="w-4 h-4 mr-1" /> Novo campo
         </Button>
       </CardHeader>
@@ -115,12 +120,21 @@ export function CustomFieldsManager({
           <ul className="divide-y">
             {roots.map((f) => (
               <li key={f.id} className="py-3">
-                <FieldRow field={f} onDelete={() => remove(f.id)} onAddChild={() => setAdding({ parent: f.id })} />
+                <FieldRow
+                  field={f}
+                  onDelete={() => remove(f.id)}
+                  onEdit={() => setDialog({ mode: "edit", field: f })}
+                  onAddChild={() => setDialog({ mode: "add", parent: f.id })}
+                />
                 {childrenOf(f.id).length > 0 && (
                   <ul className="mt-2 ml-6 border-l pl-4 space-y-2">
                     {childrenOf(f.id).map((c) => (
                       <li key={c.id}>
-                        <FieldRow field={c} onDelete={() => remove(c.id)} />
+                        <FieldRow
+                          field={c}
+                          onDelete={() => remove(c.id)}
+                          onEdit={() => setDialog({ mode: "edit", field: c })}
+                        />
                       </li>
                     ))}
                   </ul>
@@ -130,14 +144,14 @@ export function CustomFieldsManager({
           </ul>
         )}
       </CardContent>
-      {adding && (
-        <AddFieldDialog
+      {dialog && (
+        <FieldDialog
           scope={scope}
           temploId={temploId ?? null}
-          parentId={adding.parent}
-          onClose={() => setAdding(null)}
+          state={dialog}
+          onClose={() => setDialog(null)}
           onSaved={() => {
-            setAdding(null);
+            setDialog(null);
             load();
           }}
         />
@@ -149,10 +163,12 @@ export function CustomFieldsManager({
 function FieldRow({
   field,
   onDelete,
+  onEdit,
   onAddChild,
 }: {
   field: CustomField;
   onDelete: () => void;
+  onEdit: () => void;
   onAddChild?: () => void;
 }) {
   return (
@@ -171,7 +187,10 @@ function FieldRow({
             <Plus className="w-4 h-4" />
           </Button>
         )}
-        <Button size="sm" variant="ghost" onClick={onDelete}>
+        <Button size="sm" variant="ghost" onClick={onEdit} title="Editar campo">
+          <Pencil className="w-4 h-4" />
+        </Button>
+        <Button size="sm" variant="ghost" onClick={onDelete} title="Excluir campo">
           <Trash2 className="w-4 h-4" />
         </Button>
       </div>
@@ -179,56 +198,87 @@ function FieldRow({
   );
 }
 
-function AddFieldDialog({
+function FieldDialog({
   scope,
   temploId,
-  parentId,
+  state,
   onClose,
   onSaved,
 }: {
   scope: "global" | "templo";
   temploId: string | null;
-  parentId: string | null;
+  state: Exclude<DialogState, null>;
   onClose: () => void;
   onSaved: () => void;
 }) {
-  const [label, setLabel] = useState("");
-  const [tipo, setTipo] = useState<CustomField["tipo"]>("text");
-  const [opcoes, setOpcoes] = useState("");
-  const [obrigatorio, setObrigatorio] = useState(false);
+  const editing = state.mode === "edit" ? state.field : null;
+  const parentId = state.mode === "add" ? state.parent : editing?.parent_field_id ?? null;
+
+  const [label, setLabel] = useState(editing?.label ?? "");
+  const [chave, setChave] = useState(editing?.chave ?? "");
+  const [chaveTouched, setChaveTouched] = useState(false);
+  const [tipo, setTipo] = useState<CustomField["tipo"]>(editing?.tipo ?? "text");
+  const [opcoes, setOpcoes] = useState((editing?.opcoes ?? []).join("\n"));
+  const [obrigatorio, setObrigatorio] = useState(editing?.obrigatorio ?? false);
   const [busy, setBusy] = useState(false);
 
+  // Auto-slug from label until the user manually edits the chave.
+  useEffect(() => {
+    if (!chaveTouched) setChave(slugify(label));
+  }, [label, chaveTouched]);
+
   const save = async () => {
-    if (!label.trim()) return;
+    if (!label.trim() || !chave.trim()) return;
+
+    if (editing) {
+      if (chave !== editing.chave) {
+        if (!confirm("Alterar a chave pode quebrar integrações que dependem dela. Continuar?")) return;
+      }
+      if (tipo !== editing.tipo) {
+        if (!confirm("Alterar o tipo pode deixar valores já preenchidos inválidos. Continuar?")) return;
+      }
+    }
+
     setBusy(true);
     const payload: Record<string, unknown> = {
       label: label.trim(),
-      chave: slugify(label),
+      chave: chave.trim(),
       tipo,
       obrigatorio,
-      parent_field_id: parentId,
-      templo_id: scope === "global" ? null : temploId,
+      opcoes: tipo === "select"
+        ? opcoes.split("\n").map((s) => s.trim()).filter(Boolean)
+        : null,
     };
-    if (tipo === "select") {
-      payload.opcoes = opcoes
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
+
+    let error;
+    if (editing) {
+      ({ error } = await db.from("medium_custom_fields").update(payload).eq("id", editing.id));
+    } else {
+      payload.parent_field_id = parentId;
+      payload.templo_id = scope === "global" ? null : temploId;
+      ({ error } = await db.from("medium_custom_fields").insert(payload));
     }
-    const { error } = await db.from("medium_custom_fields").insert(payload);
+
     setBusy(false);
     if (error) return toast.error(error.message);
-    toast.success("Campo criado.");
+    toast.success(editing ? "Campo atualizado." : "Campo criado.");
     onSaved();
   };
 
+  const title = editing
+    ? "Editar campo"
+    : parentId
+      ? "Novo subcampo"
+      : "Novo campo";
+
   return (
     <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-card rounded-lg shadow-2xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="bg-card rounded-lg shadow-2xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div>
-          <h3 className="text-lg font-semibold">
-            {parentId ? "Novo subcampo" : "Novo campo"}
-          </h3>
+          <h3 className="text-lg font-semibold">{title}</h3>
           <p className="text-xs text-muted-foreground">
             {scope === "global"
               ? "Este campo será visto por todos os templos."
@@ -238,6 +288,18 @@ function AddFieldDialog({
         <div className="space-y-2">
           <Label>Nome do campo</Label>
           <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Ex.: Alergia a medicamento" />
+        </div>
+        <div className="space-y-2">
+          <Label>Chave interna</Label>
+          <Input
+            value={chave}
+            onChange={(e) => {
+              setChaveTouched(true);
+              setChave(slugify(e.target.value));
+            }}
+            placeholder="alergia_a_medicamento"
+          />
+          <p className="text-[11px] text-muted-foreground">Somente letras, números e _.</p>
         </div>
         <div className="space-y-2">
           <Label>Tipo</Label>
@@ -265,7 +327,7 @@ function AddFieldDialog({
         </label>
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Cancelar</Button>
-          <Button onClick={save} disabled={busy || !label.trim()}>
+          <Button onClick={save} disabled={busy || !label.trim() || !chave.trim()}>
             {busy ? "Salvando…" : "Salvar"}
           </Button>
         </div>
