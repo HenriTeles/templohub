@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { CustomField } from "@/components/CustomFieldsManager";
+import { classesElevacaoFor } from "@/lib/medium-fields";
 
 export const Route = createFileRoute("/app/mediuns/$id/")({ component: MediumDetail });
 
@@ -23,8 +24,7 @@ function MediumDetail() {
   const [m, setM] = useState<Row | null>(null);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
   const [historico, setHistorico] = useState<Array<{ id: string; acao: string; created_at: string }>>([]);
-  const [falangeNome, setFalangeNome] = useState<string | null>(null);
-  const [centuriaNome, setCenturiaNome] = useState<string | null>(null);
+  const [trinoNome, setTrinoNome] = useState<string | null>(null);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
 
@@ -39,13 +39,9 @@ function MediumDetail() {
           .createSignedUrl(data.foto_path, 3600);
         if (signed?.signedUrl) setFotoUrl(signed.signedUrl);
       }
-      if (data.falange_id) {
-        const { data: f } = await db.from("falanges").select("nome").eq("id", data.falange_id).maybeSingle();
-        setFalangeNome(f?.nome ?? null);
-      }
-      if (data.centuria_id) {
-        const { data: c } = await db.from("centurias").select("nome").eq("id", data.centuria_id).maybeSingle();
-        setCenturiaNome(c?.nome ?? null);
+      if (data.trino_id) {
+        const { data: t } = await db.from("trinos").select("nome").eq("id", data.trino_id).maybeSingle();
+        setTrinoNome(t?.nome ?? null);
       }
       const { data: h } = await db
         .from("historico")
@@ -96,6 +92,16 @@ function MediumDetail() {
     </div>
   );
 
+  const classeLabel =
+    classesElevacaoFor(m.sexo as "masculino" | "feminino" | null)
+      .find((c) => c.v === m.classe_elevacao)?.l ?? (m.classe_elevacao as string) ?? null;
+
+  const generoLabel =
+    m.sexo === "masculino" ? "Masculino" : m.sexo === "feminino" ? "Feminino" : null;
+
+  const mediunidadeLabel =
+    m.polaridade === "apara" ? "Apará" : m.polaridade === "doutrinador" ? "Doutrinador(a)" : null;
+
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-4">
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -131,11 +137,8 @@ function MediumDetail() {
               )}
             </div>
             <div className="flex flex-wrap gap-1 justify-center">
-              {(m.funcao as string) && (
-                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-accent/30 text-primary">{m.funcao as string}</span>
-              )}
-              {(m.polaridade as string) && (
-                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary">{m.polaridade as string}</span>
+              {mediunidadeLabel && (
+                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary">{mediunidadeLabel}</span>
               )}
               <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{m.situacao as string}</span>
             </div>
@@ -144,53 +147,73 @@ function MediumDetail() {
 
         <div className="space-y-4">
           <Card>
-            <CardHeader><CardTitle className="text-base">Informações Pessoais</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Dados Gerais</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Nome", m.nome_completo)}
-              {info("Nome de emissão", m.nome_emissao)}
-              {info("Nascimento", m.data_nascimento)}
-              {info("Sexo", m.sexo)}
-              {info("Nome do pai", m.nome_pai)}
+              {info("Nome completo", m.nome_completo)}
+              {info("Gênero", generoLabel)}
+              {info("Data de nascimento", m.data_nascimento)}
               {info("Nome da mãe", m.nome_mae)}
-              {info("Telefone", m.telefone)}
-              {info("WhatsApp", m.whatsapp)}
-              {info("E-mail", m.email)}
-              {info("Endereço", m.endereco)}
-              {info("Cidade", m.cidade)}
-              {info("Estado", m.estado)}
-              {info("CEP", m.cep)}
-              {info("Tipo sanguíneo", m.tipo_sanguineo)}
-              {info("Medicamentos", m.medicamentos)}
-              {info("Posologia", m.posologia)}
-              {info("Medicamento controlado", m.medicamento_controlado)}
-              {info("Médico prescritor", m.medico_prescritor)}
-              {info("CRM", m.medico_crm)}
-              {info("Possui doença", m.possui_doenca)}
-              {info("Descrição da doença", m.doenca_descricao)}
+              {info("Nome do pai", m.nome_pai)}
+              {info("Data de ingresso", m.data_ingresso)}
+              {info("Templo", s.templo?.nome)}
+              {info("Data da última classificação", m.data_ultima_classificacao)}
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader><CardTitle className="text-base">Informações Doutrinárias</CardTitle></CardHeader>
+            <CardHeader><CardTitle className="text-base">Mentores / Iniciação</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Ficha nº", m.numero_ficha)}
-              {info("Ingresso", m.data_ingresso)}
-              {info("Situação", m.situacao)}
-              {info("Início Desenv.", m.data_inicio_desenvolvimento)}
-              {info("Emplacamento", m.data_emplacamento)}
-              {info("Elevação de Espadas", m.data_elevacao_espadas)}
-              {info("Centúria (data)", m.data_centuria)}
-              {info("Consagração", m.data_consagracao)}
-              {info("Função", m.funcao)}
-              {info("Mediunidade", m.polaridade)}
-              {info("Falange", falangeNome)}
-              {info("Centúria", centuriaNome)}
-              {m.funcao === "ninfa" && info("Guia Missionária", m.guia_missionaria)}
-              {m.funcao === "mestre" && info("Ministro", m.ministro)}
-              {m.funcao === "mestre" && info("Cavaleiro", m.cavaleiro)}
-              {info("Preto-velho", m.preto_velho)}
-              {info("Caboclo", m.caboclo)}
-              {info("Médico de Cura", m.medico_cura)}
+              {info("Mentores", m.mentores)}
+              {info("Data do emplacamento", m.data_emplacamento)}
+              {info("Data de iniciação", m.data_iniciacao)}
+              {info("Mediunidade", mediunidadeLabel)}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Elevação de Espadas</CardTitle></CardHeader>
+            <CardContent className="grid md:grid-cols-3 gap-3">
+              {info("Data", m.data_elevacao_espadas)}
+              {info("Classe", classeLabel)}
+              {info("Falange de mestrado", m.falange_mestrado)}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Centúria</CardTitle></CardHeader>
+            <CardContent className="grid md:grid-cols-3 gap-3">
+              {info("Data", m.data_centuria)}
+              {info("Nome na emissão", m.nome_emissao)}
+              {info("Povo", m.povo)}
+              {info("Adjunto", m.adjunto)}
+              {info("Falange missionária", m.falange_missionaria)}
+              {info("Adjunto Devas", m.adjunto_devas)}
+              {info("Lança", m.lanca)}
+              {info("Adjunto em Trânsito", m.adjunto_transito)}
+              {info("Turno", m.turno)}
+              {info("Turno de Trabalho", m.turno_trabalho)}
+              {info("Ministro", m.ministro)}
+              {info("Cavaleiro", m.cavaleiro)}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Classificação do Médium</CardTitle></CardHeader>
+            <CardContent className="whitespace-pre-wrap text-sm">
+              {(m.classificacao_medium as string) || "—"}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader><CardTitle className="text-base">Dados complementares</CardTitle></CardHeader>
+            <CardContent className="grid md:grid-cols-3 gap-3">
+              {info("Data da última classificação", m.data_ultima_classificacao)}
+              {info("Data sétimo", m.data_setimo)}
+              {info("Data do recebimento do Cavaleiro", m.data_recebimento_cavaleiro)}
+              {info("Trino", trinoNome)}
+              {info("Adjunto de povo", m.adjunto_povo)}
+              {info("Filho(a) de Devas", m.filho_de_devas)}
+              {info("Recepcionista", m.recepcionista)}
             </CardContent>
           </Card>
 
