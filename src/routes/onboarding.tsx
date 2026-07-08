@@ -77,8 +77,21 @@ function OnboardingPage() {
         _estado: estado,
       });
       if (error) throw error;
-      toast.success("Templo enviado para aprovação.");
       await s.refresh();
+      // Se após a criação o perfil ainda não estiver vinculado ao templo,
+      // algo falhou no backend (perfil ausente etc.). Não permitir reenvio.
+      const { data: p } = await supabase
+        .from("profiles")
+        .select("templo_id")
+        .eq("id", s.userId!)
+        .maybeSingle();
+      if (!(p as { templo_id: string | null } | null)?.templo_id) {
+        toast.error(
+          "Templo criado, mas não foi possível vincular seu usuário. Rode a migration em /mnt/documents/migration-ficha-medium.sql e faça login novamente.",
+        );
+        return;
+      }
+      toast.success("Templo enviado para aprovação.");
     } catch (err) {
       toast.error((err as Error).message);
     } finally {
