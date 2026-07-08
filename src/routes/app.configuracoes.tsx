@@ -106,6 +106,81 @@ function TempleLogoCard() {
   );
 }
 
+function AccountCredentialsCard() {
+  const s = useSession();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
+  const [busyEmail, setBusyEmail] = useState(false);
+  const [busyPass, setBusyPass] = useState(false);
+
+  useEffect(() => {
+    setEmail(s.profile?.email ?? "");
+  }, [s.profile?.email]);
+
+  const saveEmail = async () => {
+    if (!email.trim()) return toast.error("Informe um e-mail válido.");
+    setBusyEmail(true);
+    const { error } = await db.auth.updateUser({ email: email.trim() });
+    setBusyEmail(false);
+    if (error) return toast.error(error.message);
+    toast.success("Enviamos um link de confirmação para o novo e-mail.");
+  };
+
+  const savePassword = async () => {
+    if (password.length < 8) return toast.error("A senha deve ter ao menos 8 caracteres.");
+    if (password !== password2) return toast.error("As senhas não coincidem.");
+    setBusyPass(true);
+    const { error } = await db.auth.updateUser({ password });
+    setBusyPass(false);
+    if (error) return toast.error(error.message);
+    setPassword("");
+    setPassword2("");
+    toast.success("Senha atualizada.");
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Conta de acesso</CardTitle>
+        <CardDescription>Altere o e-mail e a senha usados para entrar no sistema.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <div className="space-y-2">
+          <label className="text-sm font-medium">E-mail</label>
+          <div className="flex gap-2">
+            <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Button type="button" onClick={saveEmail} disabled={busyEmail}>
+              {busyEmail ? "Enviando…" : "Alterar e-mail"}
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Você receberá um e-mail de confirmação para concluir a troca.
+          </p>
+        </div>
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Nova senha</label>
+          <Input
+            type="password"
+            placeholder="Ao menos 8 caracteres"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <Input
+            type="password"
+            placeholder="Confirme a nova senha"
+            value={password2}
+            onChange={(e) => setPassword2(e.target.value)}
+          />
+          <Button type="button" onClick={savePassword} disabled={busyPass}>
+            {busyPass ? "Salvando…" : "Alterar senha"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function ConfigPage() {
   const s = useSession();
   return (
@@ -114,6 +189,8 @@ function ConfigPage() {
         <h1 className="text-2xl font-semibold">Configurações</h1>
         <p className="text-sm text-muted-foreground">Gerencie a identidade e tabelas doutrinárias deste templo</p>
       </div>
+
+      <AccountCredentialsCard />
 
       <TempleLogoCard />
 
