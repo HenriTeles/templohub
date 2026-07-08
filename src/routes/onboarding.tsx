@@ -105,7 +105,7 @@ function OnboardingPage() {
         <CardHeader>
           <CardTitle>Cadastro do Templo</CardTitle>
           <CardDescription>
-            Preencha os dados abaixo. Após enviar, um super administrador irá revisar e aprovar o
+            Preencha os dados abaixo. Após enviar, o administrador geral irá revisar e aprovar o
             acesso do seu templo.
           </CardDescription>
         </CardHeader>

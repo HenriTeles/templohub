@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Search, Settings, ShieldCheck, LogOut, X, ChevronRight, Mail, Menu, User } from "lucide-react";
+import { LayoutDashboard, Users, Search, Settings, ShieldCheck, LogOut, ChevronRight, Mail, Menu } from "lucide-react";
 import { db as supabase } from "@/lib/db";
 import { useSession, type Role } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -16,7 +16,7 @@ const NAV = [
 ] as const;
 
 const ROLE_LABEL: Record<Role, string> = {
-  super_admin: "Super Admin",
+  super_admin: "Administrador Geral",
   admin: "Admin",
   secretario: "Secretário",
   consulta: "Consulta",
@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const role = primaryRole(s.roles);
   const roleLabel = role ? ROLE_LABEL[role] : "";
-  const contextName = isSuper ? "Super Administração" : s.templo?.nome ?? "";
+  const contextName = isSuper ? "Administração Geral" : s.templo?.nome ?? "";
 
   const Sidebar = (
     <aside className="w-72 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col h-full">
@@ -101,14 +101,6 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="font-semibold text-lg leading-tight">TemploHub</div>
           <div className="text-sm text-sidebar-primary truncate">{contextName}</div>
         </div>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="md:hidden w-9 h-9 rounded-full border border-sidebar-border/70 flex items-center justify-center text-sidebar-primary hover:bg-sidebar-accent/60"
-          aria-label="Fechar menu"
-        >
-          <X className="w-4 h-4" />
-        </button>
       </div>
 
       {/* Templo card */}
@@ -227,11 +219,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               await supabase.auth.signOut();
               nav({ to: "/login" });
             }}
-            className="w-9 h-9 rounded-full bg-muted hover:bg-muted/70 flex items-center justify-center text-foreground/80"
-            aria-label="Perfil / Sair"
-            title={s.profile?.email ?? "Perfil"}
+            className="inline-flex items-center gap-1.5 rounded-full bg-muted hover:bg-muted/70 px-3 h-9 text-sm text-foreground/80"
+            aria-label="Sair"
           >
-            <User className="w-4 h-4" />
+            <LogOut className="w-4 h-4" />
+            <span>Sair</span>
           </button>
         </header>
         <main className="flex-1 min-w-0">{children}</main>
