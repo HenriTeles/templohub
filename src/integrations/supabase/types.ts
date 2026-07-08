@@ -420,12 +420,18 @@ export type Database = {
       }
       mediuns: {
         Row: {
+          adjunto: string | null
+          adjunto_devas: string | null
+          adjunto_povo: string | null
+          adjunto_transito: string | null
           adjuracao_id: string | null
           caboclo: string | null
           cavaleiro: string | null
           centuria_id: string | null
           cep: string | null
           cidade: string | null
+          classe_elevacao: string | null
+          classificacao_medium: string | null
           cpf: string | null
           created_at: string
           created_by: string | null
@@ -434,25 +440,34 @@ export type Database = {
           data_elevacao_espadas: string | null
           data_emplacamento: string | null
           data_ingresso: string | null
+          data_iniciacao: string | null
           data_inicio_desenvolvimento: string | null
           data_nascimento: string | null
+          data_recebimento_cavaleiro: string | null
+          data_setimo: string | null
+          data_ultima_classificacao: string | null
           doenca_descricao: string | null
           email: string | null
           endereco: string | null
           estado: string | null
           estado_civil: string | null
           falange_id: string | null
+          falange_mestrado: string | null
+          falange_missionaria: string | null
           falange_missionaria_id: string | null
+          filho_de_devas: string | null
           foto_path: string | null
           funcao: Database["public"]["Enums"]["mediun_funcao"] | null
           guia_missionaria: string | null
           id: string
+          lanca: string | null
           legiao_id: string | null
           medicamento_controlado: boolean | null
           medicamentos: string | null
           medico_crm: string | null
           medico_cura: string | null
           medico_prescritor: string | null
+          mentores: string | null
           ministro: string | null
           nacionalidade: string | null
           nome_completo: string
@@ -463,9 +478,11 @@ export type Database = {
           polaridade: Database["public"]["Enums"]["mediun_polaridade"] | null
           posologia: string | null
           possui_doenca: boolean | null
+          povo: string | null
           povo_id: string | null
           preto_velho: string | null
           profissao: string | null
+          recepcionista: boolean
           reino_id: string | null
           rg: string | null
           sexo: Database["public"]["Enums"]["mediun_sexo"] | null
@@ -474,16 +491,24 @@ export type Database = {
           templo_id: string
           tipo_sanguineo: string | null
           trino_id: string | null
+          turno: string | null
+          turno_trabalho: string | null
           updated_at: string
           whatsapp: string | null
         }
         Insert: {
+          adjunto?: string | null
+          adjunto_devas?: string | null
+          adjunto_povo?: string | null
+          adjunto_transito?: string | null
           adjuracao_id?: string | null
           caboclo?: string | null
           cavaleiro?: string | null
           centuria_id?: string | null
           cep?: string | null
           cidade?: string | null
+          classe_elevacao?: string | null
+          classificacao_medium?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
@@ -492,25 +517,34 @@ export type Database = {
           data_elevacao_espadas?: string | null
           data_emplacamento?: string | null
           data_ingresso?: string | null
+          data_iniciacao?: string | null
           data_inicio_desenvolvimento?: string | null
           data_nascimento?: string | null
+          data_recebimento_cavaleiro?: string | null
+          data_setimo?: string | null
+          data_ultima_classificacao?: string | null
           doenca_descricao?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
           estado_civil?: string | null
           falange_id?: string | null
+          falange_mestrado?: string | null
+          falange_missionaria?: string | null
           falange_missionaria_id?: string | null
+          filho_de_devas?: string | null
           foto_path?: string | null
           funcao?: Database["public"]["Enums"]["mediun_funcao"] | null
           guia_missionaria?: string | null
           id?: string
+          lanca?: string | null
           legiao_id?: string | null
           medicamento_controlado?: boolean | null
           medicamentos?: string | null
           medico_crm?: string | null
           medico_cura?: string | null
           medico_prescritor?: string | null
+          mentores?: string | null
           ministro?: string | null
           nacionalidade?: string | null
           nome_completo: string
@@ -521,9 +555,11 @@ export type Database = {
           polaridade?: Database["public"]["Enums"]["mediun_polaridade"] | null
           posologia?: string | null
           possui_doenca?: boolean | null
+          povo?: string | null
           povo_id?: string | null
           preto_velho?: string | null
           profissao?: string | null
+          recepcionista?: boolean
           reino_id?: string | null
           rg?: string | null
           sexo?: Database["public"]["Enums"]["mediun_sexo"] | null
@@ -532,16 +568,24 @@ export type Database = {
           templo_id: string
           tipo_sanguineo?: string | null
           trino_id?: string | null
+          turno?: string | null
+          turno_trabalho?: string | null
           updated_at?: string
           whatsapp?: string | null
         }
         Update: {
+          adjunto?: string | null
+          adjunto_devas?: string | null
+          adjunto_povo?: string | null
+          adjunto_transito?: string | null
           adjuracao_id?: string | null
           caboclo?: string | null
           cavaleiro?: string | null
           centuria_id?: string | null
           cep?: string | null
           cidade?: string | null
+          classe_elevacao?: string | null
+          classificacao_medium?: string | null
           cpf?: string | null
           created_at?: string
           created_by?: string | null
@@ -550,25 +594,34 @@ export type Database = {
           data_elevacao_espadas?: string | null
           data_emplacamento?: string | null
           data_ingresso?: string | null
+          data_iniciacao?: string | null
           data_inicio_desenvolvimento?: string | null
           data_nascimento?: string | null
+          data_recebimento_cavaleiro?: string | null
+          data_setimo?: string | null
+          data_ultima_classificacao?: string | null
           doenca_descricao?: string | null
           email?: string | null
           endereco?: string | null
           estado?: string | null
           estado_civil?: string | null
           falange_id?: string | null
+          falange_mestrado?: string | null
+          falange_missionaria?: string | null
           falange_missionaria_id?: string | null
+          filho_de_devas?: string | null
           foto_path?: string | null
           funcao?: Database["public"]["Enums"]["mediun_funcao"] | null
           guia_missionaria?: string | null
           id?: string
+          lanca?: string | null
           legiao_id?: string | null
           medicamento_controlado?: boolean | null
           medicamentos?: string | null
           medico_crm?: string | null
           medico_cura?: string | null
           medico_prescritor?: string | null
+          mentores?: string | null
           ministro?: string | null
           nacionalidade?: string | null
           nome_completo?: string
@@ -579,9 +632,11 @@ export type Database = {
           polaridade?: Database["public"]["Enums"]["mediun_polaridade"] | null
           posologia?: string | null
           possui_doenca?: boolean | null
+          povo?: string | null
           povo_id?: string | null
           preto_velho?: string | null
           profissao?: string | null
+          recepcionista?: boolean
           reino_id?: string | null
           rg?: string | null
           sexo?: Database["public"]["Enums"]["mediun_sexo"] | null
@@ -590,6 +645,8 @@ export type Database = {
           templo_id?: string
           tipo_sanguineo?: string | null
           trino_id?: string | null
+          turno?: string | null
+          turno_trabalho?: string | null
           updated_at?: string
           whatsapp?: string | null
         }
