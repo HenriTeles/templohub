@@ -1,86 +1,74 @@
-# Plano: Refazer ficha do médium + edit/remove de campos personalizados
+## Objetivos
 
-## Parte 1 — Editar/remover campos personalizados
+1. Reentregar a migration SQL da ficha do médium.
+2. Corrigir de vez o bug "não consegue logar / templo Vajaro é recriado".
+3. Ajustar a aparência para bater com o mockup (ícones em tiles arredondados + ícone de perfil no topo direito).
 
-Em `src/components/CustomFieldsManager.tsx`:
+---
 
-- Adicionar botão **Editar** (ícone lápis) em cada linha de `FieldRow`, ao lado do "remover".
-- Criar `EditFieldDialog` (baseado no `AddFieldDialog`) permitindo alterar **tudo**: rótulo (label), chave (regerada a partir do label ou editável manualmente com aviso), tipo, opções (para select), obrigatoriedade.
-- Aviso claro ao trocar o **tipo** ("valores já preenchidos podem ficar inválidos") exigindo confirmação.
-- Aviso ao trocar a **chave** ("pode quebrar integrações que dependem dela").
-- Ao salvar, `UPDATE medium_custom_fields SET ... WHERE id = ...`.
-- Botão remover já existe; manter.
+## 1. Migration da ficha (reentrega)
 
-Nenhuma migração necessária — a tabela `medium_custom_fields` já suporta esses updates via RLS existente.
-
-## Parte 2 — Refazer a ficha fixa do médium
-
-Reestruturar `src/routes/app.mediuns.new.tsx`, `app.mediuns.$id.edit.tsx` e `app.mediuns.$id.index.tsx` em **6 seções** conforme especificado, com **regras condicionais por gênero**.
-
-### Migração de schema (`mediuns`)
-
-Colunas novas (todas nullable, defaults seguros):
+Já existe em `/mnt/documents/migration-ficha-medium.sql`. Vou reexpor como artefato baixável na mensagem seguinte:
 
 ```
-data_ultima_classificacao   date
-data_iniciacao              date
-classe_elevacao             text   -- mestre_lua|mestre_sol|ninfa_lua|ninfa_sol
-falange_mestrado            text
-nome_emissao_centuria       text   -- (renomear/uso de nome_emissao existente)
-adjunto                     text
-falange_missionaria         text   -- enum textual (lista fixa por gênero)
-adjunto_devas               text
-lanca                       text
-adjunto_transito            text
-turno                       text
-turno_trabalho              text
-classificacao_medium        text
-data_setimo                 date
-data_recebimento_cavaleiro  date
-trino_id                    uuid references trinos(id)  -- já existe? verificar
-adjunto_povo                text
-filho_de_devas              text
-recepcionista               boolean default false
+<presentation-artifact path="migration-ficha-medium.sql" mime_type="application/sql"></presentation-artifact>
 ```
 
-Verificar antes o que já existe em `mediuns` (56 colunas) — usar as existentes quando o nome bater (`data_emplacamento`, `data_elevacao_espadas`, `data_centuria`, `data_consagracao`, `ministro`, `cavaleiro`, `polaridade`, `funcao`, `guia_missionaria`, etc.) e só criar as que faltam. Renomear evitando quebrar dados existentes.
+Rode uma única vez no SQL Editor do Supabase para criar as colunas novas em `public.mediuns`.
 
-### Seções na UI (ordem)
+---
 
-1. **Dados Gerais** — nome_completo, sexo (M/F), data_nascimento, nome_mae, nome_pai, data_ingresso, templo (readonly do templo atual), data_ultima_classificacao.
-2. **Mentores / Iniciação** — mentores (multi via `mediun_mentores` existente), data_emplacamento, data_iniciacao, polaridade (Apará | Doutrinador(a)).
-3. **Elevação de Espadas** — data_elevacao_espadas, classe_elevacao (dropdown filtrado por sexo: masc → mestre lua/sol; fem → ninfa lua/sol), falange_mestrado.
-4. **Centúria** — data_centuria, nome_emissao, povo, adjunto, **falange_missionaria** (dropdown; masc → Mago | Príncipe Maya; fem → lista fixa das 21 falanges), adjunto_devas, lanca, adjunto_transito, turno, turno_trabalho, ministro, cavaleiro.
-5. **Classificação do Médium** — classificacao_medium (texto).
-6. **Dados complementares** — data_ultima_classificacao, data_setimo, data_recebimento_cavaleiro, trino, adjunto_povo, filho_de_devas, recepcionista (checkbox).
+## 2. Bug de login recriando o templo Vajaro
 
-### Regras condicionais
+**Causa raiz** (confirmada por leitura do código + logs):
 
-Componente helper `<GenderConditional sexo={...}>` ou lógica no form:
+- A função `handle_new_user()` existe mas **não há trigger ativo em `auth.users`** (a seção `<db-triggers>` do Supabase informa "There are no triggers in the database"). Resultado: usuários novos **não recebem linha em `public.profiles`**.
+- No login, `SessionProvider.load()` faz `select ... from profiles` → volta `null` → `templo_id` fica `null` → `Gateway` manda para `/onboarding`.
+- No `/onboarding`, o RPC `create_templo_request` cria o templo (por isso aparece no painel do super admin), mas o `UPDATE public.profiles SET templo_id = ... WHERE id = _uid` **afeta 0 linhas** (perfil inexistente). Na próxima sessão, `templo_id` continua `null` → volta pra tela de cadastro → templo é criado de novo → duplicata "Templo Vajaro".
+- O erro do React `Encountered two children with the same key: Templo Vajaro` em `app.admin.tsx:147` (`key={f.nome}`) é sintoma do mesmo problema — existem múltiplos templos com o mesmo nome.
 
-- `classe_elevacao` recalcula opções quando `sexo` muda; se o valor atual não pertence às opções novas → limpa.
-- `falange_missionaria` idem, com as duas listas fixas em constante:
+**Correções (uma migration + dois arquivos):**
 
-```ts
-const FALANGES_FEM = ["Nityama/Madruxa", "Samaritana", "Grega", "Maya", "Yuricy", "Yuricy Lua", "Dharman-Oxinto", "Muruaicy", "Jaçanã", "Ariana da Estrela", "Testemunha", "Madalena de Cássia", "Franciscana", "Narayama", "Rochana", "Cayçara", "Tupinambás", "Cigana Aganara", "Cigana Tagana", "Agulha Ismênia", "Nyatra"];
-const FALANGES_MASC = ["Mago", "Príncipe Maya"];
-```
+a) **Migration** (schema/DDL, via ferramenta de migração):
+   - Criar `trigger on_auth_user_created AFTER INSERT ON auth.users EXECUTE FUNCTION public.handle_new_user()`.
+   - Backfill: `INSERT INTO public.profiles (id, email, nome) SELECT id, email, split_part(email,'@',1) FROM auth.users WHERE id NOT IN (SELECT id FROM public.profiles) ON CONFLICT DO NOTHING`.
+   - Endurecer `create_templo_request`: fazer `INSERT ... ON CONFLICT DO NOTHING` em `profiles` no início da função (garante linha antes do UPDATE), e checar `FOUND` no UPDATE.
+   - **Não** deletar os templos duplicados automaticamente — deixar para o super admin resolver na tela `/app/admin`.
 
-### Página de detalhe
+b) **`src/routes/app.admin.tsx`**: trocar `key={f.nome}` por `key={f.id}` (e no restante do arquivo, garantir keys por id) para eliminar o warning e permitir remover duplicatas corretamente.
 
-`app.mediuns.$id.index.tsx` re-renderizado nas mesmas 6 seções (cards) na mesma ordem, ocultando campos vazios opcionalmente.
+c) **`src/routes/onboarding.tsx`**: após `create_templo_request` bem-sucedido, se `s.refresh()` ainda retornar `templo_id === null`, mostrar mensagem de erro em vez de deixar o botão disponível para reenviar — evita duplicatas mesmo em cenários futuros.
 
-## Arquivos a tocar
+---
 
-- `src/components/CustomFieldsManager.tsx` — botão editar + dialog.
-- Migração SQL — colunas novas em `mediuns`.
-- `src/routes/app.mediuns.new.tsx` — formulário reorganizado em 6 seções.
-- `src/routes/app.mediuns.$id.edit.tsx` — mesma estrutura, prefill.
-- `src/routes/app.mediuns.$id.index.tsx` — detalhe nas 6 seções.
-- (possível) `src/lib/medium-fields.ts` — constantes de listas fixas e helpers de gênero.
+## 3. Aparência conforme mockup
+
+Observações do usuário: "os elementos gráficos (ícones)" e "ícone de perfil do usuário (bonequinho) no canto superior direito".
+
+Ajustes só em UI:
+
+a) **`src/components/AppShell.tsx`** — cabeçalho mobile:
+   - Adicionar botão redondo com ícone `User` (lucide) no canto direito da top-bar, abrindo um pequeno menu (email + "Sair") — hoje o topbar só tem o hamburger e o título "TemploHub".
+   - Manter o hamburger à esquerda e o título centralizado/à esquerda como está.
+
+b) **`src/routes/app.admin.tsx`** (Painel Global — a tela do mockup) e **`src/routes/app.dashboard.tsx`**:
+   - Padronizar os KPIs com **tiles de ícone quadrados arredondados** (`rounded-xl`, `p-3`, cor semântica de fundo suave) como no mockup — hoje o admin usa esse padrão mas o dashboard usa cores hardcoded (`bg-[oklch(...)]`). Trocar por tokens (`bg-primary/10`, `bg-accent/20`, `bg-destructive/10`) para ficar coeso com o mockup.
+   - Alinhar o espaçamento interno dos cards (mockup: número grande em cima, label em cinza embaixo).
+
+Sem mudanças de layout, cores globais, tipografia ou reorganização — só os ajustes de ícones e o botão de perfil pedidos.
+
+---
+
+## Arquivos tocados
+
+- migration SQL nova (trigger + backfill + hardening do RPC) — via ferramenta de migração
+- `src/routes/app.admin.tsx` (key + tiles)
+- `src/routes/app.dashboard.tsx` (tiles com tokens)
+- `src/routes/onboarding.tsx` (guarda contra reenvio)
+- `src/components/AppShell.tsx` (botão de perfil no topo)
+- reentrega de `/mnt/documents/migration-ficha-medium.sql`
 
 ## Fora do escopo
 
-- Não altero a lista de tabelas doutrinárias (falanges/centúrias/etc.) já em Configurações.
-- Não mudo permissões nem RLS.
-- Anexos, histórico e campos personalizados continuam nas seções extras existentes na página de detalhe.
+- Não deletar templos duplicados automaticamente.
+- Não mexer em RLS, autenticação, ou nas telas de médium.

@@ -77,7 +77,7 @@ function AdminPage() {
     const perTemplo = new Map<string, number>();
     for (const m of mediuns) perTemplo.set(m.templo_id, (perTemplo.get(m.templo_id) ?? 0) + 1);
     const top = templos
-      .map((t) => ({ nome: t.nome, qt: perTemplo.get(t.id) ?? 0 }))
+      .map((t) => ({ id: t.id, nome: t.nome, qt: perTemplo.get(t.id) ?? 0 }))
       .sort((a, b) => b.qt - a.qt)
       .slice(0, 10);
     return { pend, ativ, susp, novosT, novosM, mestres, ninfas, total: mediuns.length, perTemplo, top };
@@ -144,7 +144,7 @@ function AdminPage() {
             {stats.top.length ? (
               <ul className="space-y-2">
                 {stats.top.map((f) => (
-                  <li key={f.nome} className="flex items-center gap-3">
+                  <li key={f.id} className="flex items-center gap-3">
                     <span className="text-sm w-48 truncate">{f.nome}</span>
                     <div className="flex-1 h-2 bg-muted rounded">
                       <div className="h-2 bg-accent rounded" style={{ width: `${Math.min(100, f.qt * 5)}%` }} />
