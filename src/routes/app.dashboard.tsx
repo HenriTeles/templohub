@@ -105,7 +105,7 @@ function DashboardPage() {
   const kpi = [
     { label: "Total de médiuns", value: c?.total ?? 0, icon: Users, tint: "bg-primary/10 text-primary" },
     { label: "Mestres", value: c?.mestres ?? 0, icon: Sun, tint: "bg-accent/20 text-accent-foreground" },
-    { label: "Ninfas", value: c?.ninfas ?? 0, icon: Moon, tint: "bg-[oklch(0.9_0.05_300)] text-[oklch(0.4_0.15_300)]" },
+    { label: "Ninfas", value: c?.ninfas ?? 0, icon: Moon, tint: "bg-accent/20 text-accent-foreground" },
     { label: "Aparás", value: c?.aparas ?? 0, icon: Sparkles, tint: "bg-primary/10 text-primary" },
     { label: "Doutrinadores", value: c?.doutrinadores ?? 0, icon: BookOpen, tint: "bg-accent/20 text-accent-foreground" },
   ];
