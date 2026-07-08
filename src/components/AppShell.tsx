@@ -220,7 +220,19 @@ export function AppShell({ children }: { children: ReactNode }) {
               {Sidebar}
             </SheetContent>
           </Sheet>
-          <div className="font-semibold">TemploHub</div>
+          <div className="font-semibold flex-1">TemploHub</div>
+          <button
+            type="button"
+            onClick={async () => {
+              await supabase.auth.signOut();
+              nav({ to: "/login" });
+            }}
+            className="w-9 h-9 rounded-full bg-muted hover:bg-muted/70 flex items-center justify-center text-foreground/80"
+            aria-label="Perfil / Sair"
+            title={s.profile?.email ?? "Perfil"}
+          >
+            <User className="w-4 h-4" />
+          </button>
         </header>
         <main className="flex-1 min-w-0">{children}</main>
       </div>
