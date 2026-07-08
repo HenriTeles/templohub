@@ -77,7 +77,7 @@ function AdminPage() {
     const perTemplo = new Map<string, number>();
     for (const m of mediuns) perTemplo.set(m.templo_id, (perTemplo.get(m.templo_id) ?? 0) + 1);
     const top = templos
-      .map((t) => ({ nome: t.nome, qt: perTemplo.get(t.id) ?? 0 }))
+      .map((t) => ({ id: t.id, nome: t.nome, qt: perTemplo.get(t.id) ?? 0 }))
       .sort((a, b) => b.qt - a.qt)
       .slice(0, 10);
     return { pend, ativ, susp, novosT, novosM, mestres, ninfas, total: mediuns.length, perTemplo, top };
