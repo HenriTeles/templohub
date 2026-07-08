@@ -144,7 +144,7 @@ function AdminPage() {
             {stats.top.length ? (
               <ul className="space-y-2">
                 {stats.top.map((f) => (
-                  <li key={f.nome} className="flex items-center gap-3">
+                  <li key={f.id} className="flex items-center gap-3">
                     <span className="text-sm w-48 truncate">{f.nome}</span>
                     <div className="flex-1 h-2 bg-muted rounded">
                       <div className="h-2 bg-accent rounded" style={{ width: `${Math.min(100, f.qt * 5)}%` }} />
