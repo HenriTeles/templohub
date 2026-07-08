@@ -99,7 +99,7 @@ export function CustomFieldsManager({
       <CardHeader className="flex flex-row items-center justify-between gap-2">
         <div>
           <CardTitle className="text-base">
-            {scope === "global" ? "Campos globais da ficha" : "Campos personalizados"}
+            {scope === "global" ? "Campos de dados da ficha" : "Campos personalizados"}
           </CardTitle>
           <CardDescription>
             {scope === "global"

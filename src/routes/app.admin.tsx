@@ -21,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Building2, Users, Clock, CheckCircle2, XCircle, Pencil, Search } from "lucide-react";
+import { Building2, Users, Clock, CheckCircle2, XCircle, Pencil, Search, Trash2 } from "lucide-react";
 import { LogoUploader } from "@/components/LogoUploader";
 import { CustomFieldsManager } from "@/components/CustomFieldsManager";
 
@@ -84,7 +84,7 @@ function AdminPage() {
   }, [templos, mediuns]);
 
   if (!s.roles.includes("super_admin")) {
-    return <div className="p-6 text-muted-foreground">Acesso restrito a super administradores.</div>;
+    return <div className="p-6 text-muted-foreground">Acesso restrito ao administrador geral.</div>;
   }
 
   const approve = async (id: string) => {
@@ -97,6 +97,16 @@ function AdminPage() {
     const { error } = await db.rpc("reject_templo", { _templo_id: id });
     if (error) return toast.error(error.message);
     toast.success("Templo suspenso.");
+    load();
+  };
+  const removeTemplo = async (t: Templo) => {
+    const ok = window.confirm(
+      `Excluir definitivamente o templo "${t.nome}"?\n\nTodos os médiuns, anexos, campos e histórico deste templo serão apagados. Esta ação não pode ser desfeita.`,
+    );
+    if (!ok) return;
+    const { error } = await db.rpc("delete_templo", { _templo_id: t.id });
+    if (error) return toast.error(error.message);
+    toast.success("Templo excluído.");
     load();
   };
 
@@ -241,6 +251,15 @@ function AdminPage() {
                           <Button size="sm" variant="ghost" onClick={() => setEditing(t)}>
                             <Pencil className="w-3.5 h-3.5" />
                           </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => removeTemplo(t)}
+                            aria-label="Excluir templo"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -252,16 +271,7 @@ function AdminPage() {
         </CardContent>
       </Card>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <BrandingCard />
-        <Card>
-          <CardHeader><CardTitle className="text-base">Sobre a Super Administração</CardTitle></CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-2">
-            <p>Use esta área para administrar a marca do TemploHub, aprovar novos templos e criar campos que aparecem em todas as fichas de médium.</p>
-            <p>Campos globais valem para todos os templos. Cada templo pode adicionar campos próprios em Configurações.</p>
-          </CardContent>
-        </Card>
-      </div>
+      <BrandingCard />
 
       <CustomFieldsManager scope="global" />
 
