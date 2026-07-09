@@ -943,6 +943,7 @@ export type Database = {
         Args: { _cidade: string; _estado: string; _nome: string }
         Returns: string
       }
+      delete_templo: { Args: { _templo_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
