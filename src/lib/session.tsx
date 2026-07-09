@@ -50,10 +50,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (templo_id && !rr.includes("super_admin")) {
       const { data: t } = await supabase
         .from("templos")
-        .select("id, nome, status, logo_path, theme_primary, theme_accent, theme_sidebar")
+        .select("id, nome, status, logo_path")
         .eq("id", templo_id)
         .maybeSingle();
-      setTemplo(t as SessionState["templo"]);
+      // Theme columns are optional — swallow errors if migration not applied.
+      let theme: {
+        theme_primary: string | null;
+        theme_accent: string | null;
+        theme_sidebar: string | null;
+      } | null = null;
+      try {
+        const { data: th } = await supabase
+          .from("templos")
+          .select("theme_primary, theme_accent, theme_sidebar" as never)
+          .eq("id", templo_id)
+          .maybeSingle();
+        theme = th as typeof theme;
+      } catch { /* migration not applied yet */ }
+      setTemplo({ ...(t as SessionState["templo"] & object), ...(theme ?? {}) } as SessionState["templo"]);
     } else {
       setTemplo(null);
     }
