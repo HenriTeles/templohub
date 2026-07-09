@@ -1,74 +1,42 @@
-## Objetivos
 
-1. Reentregar a migration SQL da ficha do médium.
-2. Corrigir de vez o bug "não consegue logar / templo Vajaro é recriado".
-3. Ajustar a aparência para bater com o mockup (ícones em tiles arredondados + ícone de perfil no topo direito).
+## 1. Tela de login
+- **Remover** o link/botão "Voltar" (`<Link to="/">Voltar</Link>`) em `src/routes/login.tsx`.
+- **Logo dinâmica**: em vez do import estático `templohub-logo.png.asset.json`, ler `app_settings.logo_path` (bucket `app-branding`) via `db.storage.createSignedUrl` no `useEffect` da página de login. Fallback para o asset atual quando não houver logo cadastrada. Assim, quando o administrador geral trocar a logo no painel, a tela de login reflete a alteração.
 
----
+## 2. Customização de paleta (Configurações do templo)
+Nova seção "Customização" em `src/routes/app.configuracoes.tsx` (visível apenas para admin do templo).
 
-## 1. Migration da ficha (reentrega)
+**Persistência**
+- Adicionar coluna `theme jsonb` em `public.templos` (migration) para guardar `{ primary, secondary, accent, background, foreground }` em OKLCH/HEX.
 
-Já existe em `/mnt/documents/migration-ficha-medium.sql`. Vou reexpor como artefato baixável na mensagem seguinte:
+**UI (novo componente `src/components/TempleThemeCustomizer.tsx`)**
+- **Roda de cores estilo Adobe Color**: canvas SVG com uma cor base arrastável e geração automática das harmonias (análoga, complementar, tríade, quadrada, monocromática) — 5 swatches editáveis.
+- **Upload de imagem**: input `<file>` → carrega imagem em `<canvas>` → extrai paleta dominante com algoritmo median-cut simples em JS puro (sem dependência nova pesada; se necessário adicionar `colorthief` via `bun add`) → preenche os 5 swatches.
+- Botão "Aplicar" grava em `templos.theme` e injeta as variáveis CSS (`--primary`, `--accent`, etc.) no `document.documentElement` via um provider `TempleThemeProvider` montado dentro de `AppShell`, para que a UI daquele templo passe a usar as cores escolhidas em tempo real.
+- Pré-visualização (botões, cards) usando as cores selecionadas antes de salvar.
 
-```
-<presentation-artifact path="migration-ficha-medium.sql" mime_type="application/sql"></presentation-artifact>
-```
+## 3. Busca inteligente reflete a ficha do médium
+Em `src/routes/app.buscar.tsx`, substituir os campos atuais pela lista canônica de campos da ficha (mesma origem que `src/lib/medium-fields.ts` + colunas de `public.mediuns`), agrupados pelas 6 seções da ficha (Dados Gerais, Mentores/Iniciação, Particularidades Mediúnicas, Classificação, Dados Complementares, Saúde). Cada campo vira filtro pesquisável (texto, select, data range, boolean conforme o tipo). Incluir também os `medium_custom_fields` do templo atual.
 
-Rode uma única vez no SQL Editor do Supabase para criar as colunas novas em `public.mediuns`.
+## 4. Ajustes na ficha do médium
+Em `src/routes/app.mediuns.$id.index.tsx`:
+- **Foto**: reduzir novamente à metade (de ~120px para ~60px de largura no grid).
+- **Situação sob a foto**: badge com o texto capitalizado colorido conforme regra:
+  - `ativo` → verde
+  - `desligado` → vermelho
+  - `desenvolvimento` → amarelo
+  - `afastado` → laranja
+  (usar classes Tailwind `text-emerald-600 / text-red-600 / text-yellow-500 / text-orange-500`).
 
----
+Em `src/routes/app.mediuns.$id.edit.tsx`:
+- Remover a opção **"licenciado"** do dropdown de situação. Manter as 4 opções acima. Migration adicional: se o enum `mediun_situacao` incluir `licenciado`, apenas removê-lo da UI (não dropar do enum para não quebrar dados legados; converter registros existentes com `licenciado` para `afastado` opcionalmente — confirmar antes).
 
-## 2. Bug de login recriando o templo Vajaro
+## Detalhes técnicos
+- Migration: `ALTER TABLE public.templos ADD COLUMN theme jsonb;` (nullable, sem default).
+- `TempleThemeProvider`: lê `session.templo.theme` e aplica CSS vars ao root. Se `null`, mantém tokens padrão do `src/styles.css`.
+- Extração de paleta: implementação leve em JS (quantização k-means com ~5 centróides sobre pixels amostrados a cada 10). Se preferir, adiciono `colorthief` (~5kb).
+- Busca inteligente: definição centralizada em um novo `src/lib/medium-search-schema.ts` reutilizado por busca e (futuramente) exportações.
 
-**Causa raiz** (confirmada por leitura do código + logs):
-
-- A função `handle_new_user()` existe mas **não há trigger ativo em `auth.users`** (a seção `<db-triggers>` do Supabase informa "There are no triggers in the database"). Resultado: usuários novos **não recebem linha em `public.profiles`**.
-- No login, `SessionProvider.load()` faz `select ... from profiles` → volta `null` → `templo_id` fica `null` → `Gateway` manda para `/onboarding`.
-- No `/onboarding`, o RPC `create_templo_request` cria o templo (por isso aparece no painel do super admin), mas o `UPDATE public.profiles SET templo_id = ... WHERE id = _uid` **afeta 0 linhas** (perfil inexistente). Na próxima sessão, `templo_id` continua `null` → volta pra tela de cadastro → templo é criado de novo → duplicata "Templo Vajaro".
-- O erro do React `Encountered two children with the same key: Templo Vajaro` em `app.admin.tsx:147` (`key={f.nome}`) é sintoma do mesmo problema — existem múltiplos templos com o mesmo nome.
-
-**Correções (uma migration + dois arquivos):**
-
-a) **Migration** (schema/DDL, via ferramenta de migração):
-   - Criar `trigger on_auth_user_created AFTER INSERT ON auth.users EXECUTE FUNCTION public.handle_new_user()`.
-   - Backfill: `INSERT INTO public.profiles (id, email, nome) SELECT id, email, split_part(email,'@',1) FROM auth.users WHERE id NOT IN (SELECT id FROM public.profiles) ON CONFLICT DO NOTHING`.
-   - Endurecer `create_templo_request`: fazer `INSERT ... ON CONFLICT DO NOTHING` em `profiles` no início da função (garante linha antes do UPDATE), e checar `FOUND` no UPDATE.
-   - **Não** deletar os templos duplicados automaticamente — deixar para o super admin resolver na tela `/app/admin`.
-
-b) **`src/routes/app.admin.tsx`**: trocar `key={f.nome}` por `key={f.id}` (e no restante do arquivo, garantir keys por id) para eliminar o warning e permitir remover duplicatas corretamente.
-
-c) **`src/routes/onboarding.tsx`**: após `create_templo_request` bem-sucedido, se `s.refresh()` ainda retornar `templo_id === null`, mostrar mensagem de erro em vez de deixar o botão disponível para reenviar — evita duplicatas mesmo em cenários futuros.
-
----
-
-## 3. Aparência conforme mockup
-
-Observações do usuário: "os elementos gráficos (ícones)" e "ícone de perfil do usuário (bonequinho) no canto superior direito".
-
-Ajustes só em UI:
-
-a) **`src/components/AppShell.tsx`** — cabeçalho mobile:
-   - Adicionar botão redondo com ícone `User` (lucide) no canto direito da top-bar, abrindo um pequeno menu (email + "Sair") — hoje o topbar só tem o hamburger e o título "TemploHub".
-   - Manter o hamburger à esquerda e o título centralizado/à esquerda como está.
-
-b) **`src/routes/app.admin.tsx`** (Painel Global — a tela do mockup) e **`src/routes/app.dashboard.tsx`**:
-   - Padronizar os KPIs com **tiles de ícone quadrados arredondados** (`rounded-xl`, `p-3`, cor semântica de fundo suave) como no mockup — hoje o admin usa esse padrão mas o dashboard usa cores hardcoded (`bg-[oklch(...)]`). Trocar por tokens (`bg-primary/10`, `bg-accent/20`, `bg-destructive/10`) para ficar coeso com o mockup.
-   - Alinhar o espaçamento interno dos cards (mockup: número grande em cima, label em cinza embaixo).
-
-Sem mudanças de layout, cores globais, tipografia ou reorganização — só os ajustes de ícones e o botão de perfil pedidos.
-
----
-
-## Arquivos tocados
-
-- migration SQL nova (trigger + backfill + hardening do RPC) — via ferramenta de migração
-- `src/routes/app.admin.tsx` (key + tiles)
-- `src/routes/app.dashboard.tsx` (tiles com tokens)
-- `src/routes/onboarding.tsx` (guarda contra reenvio)
-- `src/components/AppShell.tsx` (botão de perfil no topo)
-- reentrega de `/mnt/documents/migration-ficha-medium.sql`
-
-## Fora do escopo
-
-- Não deletar templos duplicados automaticamente.
-- Não mexer em RLS, autenticação, ou nas telas de médium.
+## Perguntas antes de codar
+1. Registros existentes de médiuns com `situacao = 'licenciado'` devem ser migrados para `afastado` ou mantidos como estão (só somem do dropdown)?
+2. Para a roda de cores, prefere que eu implemente a extração da paleta em código puro (sem dependência nova) ou posso adicionar `colorthief`?
