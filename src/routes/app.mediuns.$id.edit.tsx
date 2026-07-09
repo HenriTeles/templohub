@@ -33,7 +33,6 @@ type Form = Record<string, string | boolean | null>;
 const SITUACOES = [
   { v: "ativo", l: "Ativo" },
   { v: "em_desenvolvimento", l: "Em desenvolvimento" },
-  { v: "licenciado", l: "Licenciado" },
   { v: "afastado", l: "Afastado" },
   { v: "desligado", l: "Desligado" },
 ];
