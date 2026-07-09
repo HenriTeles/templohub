@@ -69,7 +69,7 @@ function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-2">
           <img
-            src={logoAsset.url}
+            src={logoUrl}
             alt="TemploHub"
             className="mx-auto h-28 w-auto"
           />
@@ -141,9 +141,6 @@ function LoginPage() {
           </div>
           <p className="mt-6 text-xs text-center text-muted-foreground">
             Ao continuar você concorda com a LGPD e políticas do TemploHub.
-          </p>
-          <p className="mt-2 text-xs text-center text-muted-foreground">
-            <Link to="/">Voltar</Link>
           </p>
         </CardContent>
       </Card>
