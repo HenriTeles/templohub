@@ -8,6 +8,7 @@ import { Pencil, ArrowLeft, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import type { CustomField } from "@/components/CustomFieldsManager";
 import { classesElevacaoFor } from "@/lib/medium-fields";
+import { situacaoBadgeClass, SITUACAO_LABEL } from "@/lib/status";
 
 export const Route = createFileRoute("/app/mediuns/$id/")({ component: MediumDetail });
 
@@ -120,27 +121,23 @@ function MediumDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[120px_1fr] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[60px_1fr] gap-4">
         <Card>
-          <CardContent className="p-3 space-y-2 text-center">
+          <CardContent className="p-2 space-y-2 text-center">
             {fotoUrl ? (
               <img src={fotoUrl} alt="" className="w-full aspect-square object-cover rounded-md" />
             ) : (
-              <div className="w-full aspect-square rounded-md bg-primary/10 text-primary flex items-center justify-center text-2xl font-serif">
+              <div className="w-full aspect-square rounded-md bg-primary/10 text-primary flex items-center justify-center text-base font-serif">
                 {m.nome_completo.charAt(0)}
               </div>
             )}
-            <div>
-              <div className="font-semibold text-sm leading-tight">{m.nome_completo}</div>
-              {(m.nome_emissao as string) && (
-                <div className="text-[11px] text-muted-foreground">{m.nome_emissao as string}</div>
-              )}
-            </div>
             <div className="flex flex-wrap gap-1 justify-center">
               {mediunidadeLabel && (
-                <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-primary/10 text-primary">{mediunidadeLabel}</span>
+                <span className="text-[9px] uppercase px-1 py-0.5 rounded bg-primary/10 text-primary">{mediunidadeLabel}</span>
               )}
-              <span className="text-[10px] uppercase px-1.5 py-0.5 rounded bg-muted text-muted-foreground">{m.situacao as string}</span>
+              <span className={`text-[9px] uppercase px-1 py-0.5 rounded ${situacaoBadgeClass(m.situacao as string)}`}>
+                {SITUACAO_LABEL[m.situacao as string] ?? (m.situacao as string)}
+              </span>
             </div>
           </CardContent>
         </Card>
