@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
 import { LogoUploader } from "@/components/LogoUploader";
 import { CustomFieldsManager } from "@/components/CustomFieldsManager";
+import { TempleThemeCustomizer } from "@/components/TempleThemeCustomizer";
 
 export const Route = createFileRoute("/app/configuracoes")({ component: ConfigPage });
 
@@ -193,6 +194,10 @@ function ConfigPage() {
       <AccountCredentialsCard />
 
       <TempleLogoCard />
+
+      <TempleThemeCustomizer />
+
+
 
       {s.templo?.id && <CustomFieldsManager scope="templo" temploId={s.templo.id} />}
 

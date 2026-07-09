@@ -1,5 +1,5 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import { db as supabase } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,19 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
   const [busy, setBusy] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string>(logoAsset.url);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const { data } = await supabase.from("app_settings").select("logo_path").eq("id", 1).maybeSingle();
+      const path = (data as { logo_path: string | null } | null)?.logo_path;
+      if (!path) return;
+      const { data: signed } = await supabase.storage.from("app-branding").createSignedUrl(path, 3600);
+      if (alive && signed?.signedUrl) setLogoUrl(signed.signedUrl);
+    })();
+    return () => { alive = false; };
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +69,7 @@ function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-2">
           <img
-            src={logoAsset.url}
+            src={logoUrl}
             alt="TemploHub"
             className="mx-auto h-28 w-auto"
           />
@@ -128,9 +141,6 @@ function LoginPage() {
           </div>
           <p className="mt-6 text-xs text-center text-muted-foreground">
             Ao continuar você concorda com a LGPD e políticas do TemploHub.
-          </p>
-          <p className="mt-2 text-xs text-center text-muted-foreground">
-            <Link to="/">Voltar</Link>
           </p>
         </CardContent>
       </Card>

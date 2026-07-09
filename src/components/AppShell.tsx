@@ -197,8 +197,16 @@ export function AppShell({ children }: { children: ReactNode }) {
     </aside>
   );
 
+  const themeStyle = !isSuper && s.templo
+    ? ({
+        ...(s.templo.theme_primary ? { "--primary": s.templo.theme_primary, "--ring": s.templo.theme_primary } : {}),
+        ...(s.templo.theme_accent ? { "--accent": s.templo.theme_accent, "--sidebar-primary": s.templo.theme_accent } : {}),
+        ...(s.templo.theme_sidebar ? { "--sidebar": s.templo.theme_sidebar } : {}),
+      } as React.CSSProperties)
+    : undefined;
+
   return (
-    <div className="min-h-screen bg-background flex">
+    <div className="min-h-screen bg-background flex" style={themeStyle}>
       <div className="hidden md:flex">{Sidebar}</div>
       <div className="flex-1 flex flex-col min-w-0">
         <header className="md:hidden flex items-center gap-3 px-4 py-3 border-b bg-card">

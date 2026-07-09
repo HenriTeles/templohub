@@ -5,121 +5,145 @@ import { useSession } from "@/lib/session";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  classesElevacaoFor,
+  falangesMissionariasFor,
+  type Sexo,
+} from "@/lib/medium-fields";
+import { situacaoBadgeClass, SITUACAO_LABEL } from "@/lib/status";
 
 export const Route = createFileRoute("/app/buscar")({ component: BuscarPage });
 
-type Row = {
+type Row = Record<string, unknown> & {
   id: string;
   nome_completo: string;
-  cpf: string | null;
-  cidade: string | null;
-  funcao: string | null;
-  polaridade: string | null;
   situacao: string;
-  falange_id: string | null;
-  centuria_id: string | null;
-  data_nascimento: string | null;
 };
+
+const SITUACOES = ["ativo", "em_desenvolvimento", "afastado", "desligado"];
 
 function BuscarPage() {
   const s = useSession();
   const [rows, setRows] = useState<Row[]>([]);
-  const [falanges, setFalanges] = useState<Array<{ id: string; nome: string }>>([]);
+  const [trinos, setTrinos] = useState<Array<{ id: string; nome: string }>>([]);
+
   const [q, setQ] = useState("");
   const [situacao, setSituacao] = useState("");
-  const [funcao, setFuncao] = useState("");
+  const [sexo, setSexo] = useState<"" | Sexo>("");
   const [polaridade, setPolaridade] = useState("");
-  const [falangeId, setFalangeId] = useState("");
+  const [classeElev, setClasseElev] = useState("");
+  const [falangeMiss, setFalangeMiss] = useState("");
+  const [trinoId, setTrinoId] = useState("");
+  const [povo, setPovo] = useState("");
+  const [adjunto, setAdjunto] = useState("");
 
   useEffect(() => {
     if (!s.templo?.id) return;
     (async () => {
-      const { data } = await db
-        .from("mediuns")
-        .select("id, nome_completo, cpf, cidade, funcao, polaridade, situacao, falange_id, centuria_id, data_nascimento")
-        .eq("templo_id", s.templo!.id)
-        .order("nome_completo");
+      const [{ data }, { data: ts }] = await Promise.all([
+        db.from("mediuns").select("*").eq("templo_id", s.templo!.id).order("nome_completo"),
+        db.from("trinos").select("id, nome").order("nome"),
+      ]);
       setRows((data ?? []) as Row[]);
-      const { data: fs } = await db
-        .from("falanges")
-        .select("id, nome")
-        .or(`templo_id.eq.${s.templo!.id},templo_id.is.null`)
-        .order("nome");
-      setFalanges((fs ?? []) as typeof falanges);
+      setTrinos((ts ?? []) as typeof trinos);
     })();
   }, [s.templo?.id]);
+
+  const classes = useMemo(() => classesElevacaoFor(sexo || null), [sexo]);
+  const falanges = useMemo(() => falangesMissionariasFor(sexo || null), [sexo]);
+
+  const povosOpts = useMemo(() => uniq(rows.map((r) => r.povo as string)), [rows]);
+  const adjuntosOpts = useMemo(() => uniq(rows.map((r) => r.adjunto as string)), [rows]);
 
   const filtered = useMemo(() => {
     const qq = q.trim().toLowerCase();
     return rows.filter((r) => {
       if (situacao && situacao !== "all" && r.situacao !== situacao) return false;
-      if (funcao && funcao !== "all" && r.funcao !== funcao) return false;
+      if (sexo && r.sexo !== sexo) return false;
       if (polaridade && polaridade !== "all" && r.polaridade !== polaridade) return false;
-      if (falangeId && falangeId !== "all" && r.falange_id !== falangeId) return false;
+      if (classeElev && classeElev !== "all" && r.classe_elevacao !== classeElev) return false;
+      if (falangeMiss && falangeMiss !== "all" && r.falange_missionaria !== falangeMiss) return false;
+      if (trinoId && trinoId !== "all" && r.trino_id !== trinoId) return false;
+      if (povo && povo !== "all" && r.povo !== povo) return false;
+      if (adjunto && adjunto !== "all" && r.adjunto !== adjunto) return false;
       if (qq) {
-        const hay = `${r.nome_completo} ${r.cpf ?? ""} ${r.cidade ?? ""}`.toLowerCase();
+        const hay = [
+          r.nome_completo, r.nome_emissao, r.nome_mae, r.nome_pai,
+          r.cidade, r.mentores, r.falange_mestrado, r.ministro, r.cavaleiro,
+          r.adjunto_devas, r.adjunto_transito, r.adjunto_povo, r.filho_de_devas,
+          r.classificacao_medium, r.observacoes,
+        ].map((v) => String(v ?? "").toLowerCase()).join(" ");
         if (!hay.includes(qq)) return false;
       }
       return true;
     });
-  }, [rows, q, situacao, funcao, polaridade, falangeId]);
+  }, [rows, q, situacao, sexo, polaridade, classeElev, falangeMiss, trinoId, povo, adjunto]);
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-4">
       <h1 className="text-2xl font-semibold">Pesquisa Inteligente</h1>
       <Card>
-        <CardContent className="p-4 grid md:grid-cols-5 gap-3">
-          <div className="md:col-span-2 space-y-1.5">
+        <CardContent className="p-4 grid md:grid-cols-4 gap-3">
+          <div className="md:col-span-4 space-y-1.5">
             <Label>Busca livre</Label>
-            <Input placeholder="Nome, CPF, cidade…" value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input
+              placeholder="Nome, nome de emissão, mãe/pai, cidade, mentores, classificação, observações…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
           </div>
+
+          <SelectField label="Situação" value={situacao} setValue={setSituacao}
+            options={SITUACOES.map((v) => ({ v, l: SITUACAO_LABEL[v] ?? v }))} />
+
           <div className="space-y-1.5">
-            <Label>Situação</Label>
-            <Select value={situacao} onValueChange={setSituacao}>
-              <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas</SelectItem>
-                <SelectItem value="ativo">Ativo</SelectItem>
-                <SelectItem value="em_desenvolvimento">Em desenvolvimento</SelectItem>
-                <SelectItem value="licenciado">Licenciado</SelectItem>
-                <SelectItem value="afastado">Afastado</SelectItem>
-                <SelectItem value="desligado">Desligado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5">
-            <Label>Função</Label>
-            <Select value={funcao} onValueChange={setFuncao}>
+            <Label>Gênero</Label>
+            <Select value={sexo} onValueChange={(v) => setSexo(v as "" | Sexo)}>
               <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="mestre">Mestre</SelectItem>
-                <SelectItem value="ninfa">Ninfa</SelectItem>
+                <SelectItem value="masculino">Masculino</SelectItem>
+                <SelectItem value="feminino">Feminino</SelectItem>
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-1.5">
-            <Label>Polaridade</Label>
-            <Select value={polaridade} onValueChange={setPolaridade}>
-              <SelectTrigger><SelectValue placeholder="Todos" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="apara">Apará</SelectItem>
-                <SelectItem value="doutrinador">Doutrinador</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-1.5 md:col-span-2">
-            <Label>Falange</Label>
-            <Select value={falangeId} onValueChange={setFalangeId}>
-              <SelectTrigger><SelectValue placeholder="Todas" /></SelectTrigger>
+
+          <SelectField label="Mediunidade" value={polaridade} setValue={setPolaridade}
+            options={[{ v: "apara", l: "Apará" }, { v: "doutrinador", l: "Doutrinador(a)" }]} />
+
+          <SelectField label="Classe de Elevação" value={classeElev} setValue={setClasseElev}
+            options={classes.map((c) => ({ v: c.v, l: c.l }))}
+            disabled={!sexo}
+            placeholder={sexo ? "Todas" : "Escolha o gênero"} />
+
+          <div className="md:col-span-2 space-y-1.5">
+            <Label>Falange Missionária</Label>
+            <Select value={falangeMiss} onValueChange={setFalangeMiss} disabled={!sexo}>
+              <SelectTrigger>
+                <SelectValue placeholder={sexo ? "Todas" : "Escolha o gênero"} />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Todas</SelectItem>
-                {falanges.map((f) => <SelectItem key={f.id} value={f.id}>{f.nome}</SelectItem>)}
+                {falanges.map((n) => <SelectItem key={n} value={n}>{n}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
+
+          <SelectField label="Trino" value={trinoId} setValue={setTrinoId}
+            options={trinos.map((t) => ({ v: t.id, l: t.nome }))} />
+
+          <SelectField label="Povo" value={povo} setValue={setPovo}
+            options={povosOpts.map((v) => ({ v, l: v }))} />
+
+          <SelectField label="Adjunto" value={adjunto} setValue={setAdjunto}
+            options={adjuntosOpts.map((v) => ({ v, l: v }))} />
         </CardContent>
       </Card>
 
@@ -128,15 +152,15 @@ function BuscarPage() {
         {filtered.map((r) => (
           <Link key={r.id} to="/app/mediuns/$id" params={{ id: r.id }}>
             <Card className="hover:border-accent transition-colors">
-              <CardContent className="p-3 flex items-center justify-between">
-                <div>
-                  <div className="font-medium">{r.nome_completo}</div>
-                  <div className="text-xs text-muted-foreground">
-                    {[r.cidade, r.cpf].filter(Boolean).join(" · ") || "—"}
+              <CardContent className="p-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-medium truncate">{r.nome_completo}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {[r.nome_emissao, r.povo, r.adjunto].filter(Boolean).join(" · ") || "—"}
                   </div>
                 </div>
-                <span className="text-[10px] uppercase px-2 py-0.5 rounded bg-muted text-muted-foreground">
-                  {r.situacao}
+                <span className={`text-[10px] uppercase px-2 py-0.5 rounded ${situacaoBadgeClass(r.situacao)}`}>
+                  {SITUACAO_LABEL[r.situacao] ?? r.situacao}
                 </span>
               </CardContent>
             </Card>
@@ -145,4 +169,32 @@ function BuscarPage() {
       </div>
     </div>
   );
+}
+
+function SelectField({
+  label, value, setValue, options, disabled, placeholder = "Todos",
+}: {
+  label: string;
+  value: string;
+  setValue: (v: string) => void;
+  options: Array<{ v: string; l: string }>;
+  disabled?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div className="space-y-1.5">
+      <Label>{label}</Label>
+      <Select value={value} onValueChange={setValue} disabled={disabled}>
+        <SelectTrigger><SelectValue placeholder={placeholder} /></SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">{placeholder}</SelectItem>
+          {options.map((o) => <SelectItem key={o.v} value={o.v}>{o.l}</SelectItem>)}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+
+function uniq(arr: Array<string | null | undefined>): string[] {
+  return [...new Set(arr.filter((v): v is string => !!v && v.trim() !== ""))].sort();
 }

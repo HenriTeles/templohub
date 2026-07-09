@@ -9,7 +9,15 @@ export type SessionState = {
   session: Session | null;
   userId: string | null;
   profile: { id: string; templo_id: string | null; nome: string | null; email: string | null } | null;
-  templo: { id: string; nome: string; status: string; logo_path: string | null } | null;
+  templo: {
+    id: string;
+    nome: string;
+    status: string;
+    logo_path: string | null;
+    theme_primary?: string | null;
+    theme_accent?: string | null;
+    theme_sidebar?: string | null;
+  } | null;
   roles: Role[];
   refresh: () => Promise<void>;
 };
@@ -45,7 +53,21 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         .select("id, nome, status, logo_path")
         .eq("id", templo_id)
         .maybeSingle();
-      setTemplo(t as SessionState["templo"]);
+      // Theme columns are optional — swallow errors if migration not applied.
+      let theme: {
+        theme_primary: string | null;
+        theme_accent: string | null;
+        theme_sidebar: string | null;
+      } | null = null;
+      try {
+        const { data: th } = await supabase
+          .from("templos")
+          .select("theme_primary, theme_accent, theme_sidebar" as never)
+          .eq("id", templo_id)
+          .maybeSingle();
+        theme = th as typeof theme;
+      } catch { /* migration not applied yet */ }
+      setTemplo({ ...(t as SessionState["templo"] & object), ...(theme ?? {}) } as SessionState["templo"]);
     } else {
       setTemplo(null);
     }
