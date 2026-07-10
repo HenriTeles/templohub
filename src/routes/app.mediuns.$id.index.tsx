@@ -130,9 +130,9 @@ function MediumDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[30px_1fr] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[20px_1fr] gap-4">
         <Card>
-          <CardContent className="p-1.5 space-y-1.5 text-center">
+          <CardContent className="p-1 space-y-1 text-center">
             {fotoUrl ? (
               <img src={fotoUrl} alt="" className="w-full aspect-square object-cover rounded-md" />
             ) : (
