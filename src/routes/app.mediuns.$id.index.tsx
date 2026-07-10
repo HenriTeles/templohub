@@ -9,8 +9,17 @@ import { toast } from "sonner";
 import type { CustomField } from "@/components/CustomFieldsManager";
 import { classesElevacaoFor } from "@/lib/medium-fields";
 import { situacaoBadgeClass, SITUACAO_LABEL } from "@/lib/status";
+import crucifixoAsset from "@/assets/crucifixo.jpg.asset.json";
+import trianguloAsset from "@/assets/triangulo-apara.png.asset.json";
 
 export const Route = createFileRoute("/app/mediuns/$id/")({ component: MediumDetail });
+
+const fmtDate = (v: unknown): string => {
+  if (!v || typeof v !== "string") return "—";
+  const s = v.slice(0, 10);
+  const [y, m, d] = s.split("-");
+  return y && m && d ? `${d}/${m}/${y}` : "—";
+};
 
 type Row = Record<string, unknown> & {
   id: string;
