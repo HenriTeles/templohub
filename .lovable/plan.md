@@ -1,42 +1,51 @@
+## Escopo
 
-## 1. Tela de login
-- **Remover** o link/botão "Voltar" (`<Link to="/">Voltar</Link>`) em `src/routes/login.tsx`.
-- **Logo dinâmica**: em vez do import estático `templohub-logo.png.asset.json`, ler `app_settings.logo_path` (bucket `app-branding`) via `db.storage.createSignedUrl` no `useEffect` da página de login. Fallback para o asset atual quando não houver logo cadastrada. Assim, quando o administrador geral trocar a logo no painel, a tela de login reflete a alteração.
+Ajustes solicitados na dashboard do templo e na ficha do médium.
 
-## 2. Customização de paleta (Configurações do templo)
-Nova seção "Customização" em `src/routes/app.configuracoes.tsx` (visível apenas para admin do templo).
+### 1. Dashboard — contadores por gênero (`src/routes/app.dashboard.tsx`)
+- Substituir a contagem baseada em `funcao === "mestre"` / `funcao === "ninfa"` por contagem baseada em `sexo`:
+  - **Mestres** = médiuns com `sexo === "masculino"`
+  - **Ninfas** = médiuns com `sexo === "feminino"`
+- Incluir `sexo` no `select` da query.
+- "Quantidade por Falange" já usa `falange_id` correto — verificar que Henrique aparece porque a query já faz `.or(templo_id.eq.X, templo_id.is.null)` em `falanges`. Nenhuma mudança adicional necessária além de garantir que a falange "Magos" esteja cadastrada como falange do templo ou global (isso já é o caso).
 
-**Persistência**
-- Adicionar coluna `theme jsonb` em `public.templos` (migration) para guardar `{ primary, secondary, accent, background, foreground }` em OKLCH/HEX.
+### 2. Ficha do médium — foto e ícones (`src/routes/app.mediuns.$id.index.tsx`)
+- Reduzir a foto para metade do tamanho atual: alterar o grid de `md:grid-cols-[60px_1fr]` para `md:grid-cols-[30px_1fr]` (mantendo `aspect-square`). Ajustar tamanhos de fonte dos badges proporcionalmente se necessário.
+- Adicionar ícone de mediunidade abaixo da foto e dos badges:
+  - Se `polaridade === "doutrinador"` → miniatura do crucifixo (`user-uploads://images_d2cefe16-d6ef-45.jpg`)
+  - Se `polaridade === "apara"` → miniatura do triângulo vermelho (`user-uploads://vale-do-amanhecer-apara-logo-png_seeklogo-275617.png`)
+- As duas imagens serão importadas como Lovable Assets (`lovable-assets create ...`) e importadas via JSON pointer em `src/assets/`.
+- Renderizar como `<img>` centralizada, ~24×24px, com `alt` descritivo.
 
-**UI (novo componente `src/components/TempleThemeCustomizer.tsx`)**
-- **Roda de cores estilo Adobe Color**: canvas SVG com uma cor base arrastável e geração automática das harmonias (análoga, complementar, tríade, quadrada, monocromática) — 5 swatches editáveis.
-- **Upload de imagem**: input `<file>` → carrega imagem em `<canvas>` → extrai paleta dominante com algoritmo median-cut simples em JS puro (sem dependência nova pesada; se necessário adicionar `colorthief` via `bun add`) → preenche os 5 swatches.
-- Botão "Aplicar" grava em `templos.theme` e injeta as variáveis CSS (`--primary`, `--accent`, etc.) no `document.documentElement` via um provider `TempleThemeProvider` montado dentro de `AppShell`, para que a UI daquele templo passe a usar as cores escolhidas em tempo real.
-- Pré-visualização (botões, cards) usando as cores selecionadas antes de salvar.
+### 3. Formatação de datas em toda a ficha (`src/routes/app.mediuns.$id.index.tsx`)
+- Criar helper local `fmtDate(iso)` que converte `YYYY-MM-DD` (ou ISO completo) em `DD/MM/AAAA`, retornando `"—"` para nulos/inválidos.
+- Aplicar em todos os campos de data exibidos na ficha:
+  - `data_nascimento`, `data_ingresso`, `data_ultima_classificacao`
+  - `data_emplacamento`, `data_iniciacao`
+  - `data_elevacao_espadas`
+  - `data_centuria`
+  - `data_setimo`, `data_recebimento_cavaleiro`
+- Formatar `historico[].created_at` com `toLocaleString("pt-BR")` (já usa, manter).
 
-## 3. Busca inteligente reflete a ficha do médium
-Em `src/routes/app.buscar.tsx`, substituir os campos atuais pela lista canônica de campos da ficha (mesma origem que `src/lib/medium-fields.ts` + colunas de `public.mediuns`), agrupados pelas 6 seções da ficha (Dados Gerais, Mentores/Iniciação, Particularidades Mediúnicas, Classificação, Dados Complementares, Saúde). Cada campo vira filtro pesquisável (texto, select, data range, boolean conforme o tipo). Incluir também os `medium_custom_fields` do templo atual.
-
-## 4. Ajustes na ficha do médium
-Em `src/routes/app.mediuns.$id.index.tsx`:
-- **Foto**: reduzir novamente à metade (de ~120px para ~60px de largura no grid).
-- **Situação sob a foto**: badge com o texto capitalizado colorido conforme regra:
-  - `ativo` → verde
-  - `desligado` → vermelho
-  - `desenvolvimento` → amarelo
-  - `afastado` → laranja
-  (usar classes Tailwind `text-emerald-600 / text-red-600 / text-yellow-500 / text-orange-500`).
-
-Em `src/routes/app.mediuns.$id.edit.tsx`:
-- Remover a opção **"licenciado"** do dropdown de situação. Manter as 4 opções acima. Migration adicional: se o enum `mediun_situacao` incluir `licenciado`, apenas removê-lo da UI (não dropar do enum para não quebrar dados legados; converter registros existentes com `licenciado` para `afastado` opcionalmente — confirmar antes).
+### 4. Datas em outros pontos visíveis
+- `src/routes/app.mediuns.index.tsx`: se listar `data_nascimento`/`data_ingresso`, aplicar mesma formatação.
+- `src/routes/app.buscar.tsx`: idem para colunas de data exibidas nos resultados.
+- Dashboard já formata via `toLocaleDateString("pt-BR")` — sem mudança.
 
 ## Detalhes técnicos
-- Migration: `ALTER TABLE public.templos ADD COLUMN theme jsonb;` (nullable, sem default).
-- `TempleThemeProvider`: lê `session.templo.theme` e aplica CSS vars ao root. Se `null`, mantém tokens padrão do `src/styles.css`.
-- Extração de paleta: implementação leve em JS (quantização k-means com ~5 centróides sobre pixels amostrados a cada 10). Se preferir, adiciono `colorthief` (~5kb).
-- Busca inteligente: definição centralizada em um novo `src/lib/medium-search-schema.ts` reutilizado por busca e (futuramente) exportações.
 
-## Perguntas antes de codar
-1. Registros existentes de médiuns com `situacao = 'licenciado'` devem ser migrados para `afastado` ou mantidos como estão (só somem do dropdown)?
-2. Para a roda de cores, prefere que eu implemente a extração da paleta em código puro (sem dependência nova) ou posso adicionar `colorthief`?
+- Helper `fmtDate`:
+  ```ts
+  const fmtDate = (v: unknown): string => {
+    if (!v || typeof v !== "string") return "—";
+    const [y, m, d] = v.slice(0, 10).split("-");
+    return y && m && d ? `${d}/${m}/${y}` : "—";
+  };
+  ```
+  Preferível a `new Date(...).toLocaleDateString("pt-BR")` para colunas `date` (evita shift de timezone que joga o dia para o anterior).
+
+- Ícones: usar `lovable-assets create` a partir de `/mnt/user-uploads/` e importar os pointers `.asset.json` para não versionar os binários.
+
+## Fora de escopo
+- Nenhuma mudança de schema, RLS ou lógica de backend.
+- Nenhuma alteração no formulário de edição além do necessário.

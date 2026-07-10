@@ -32,11 +32,12 @@ function DashboardPage() {
     (async () => {
       const { data: rows } = await db
         .from("mediuns")
-        .select("id, nome_completo, funcao, polaridade, data_nascimento, created_at, falange_id, centuria_id")
+        .select("id, nome_completo, sexo, funcao, polaridade, data_nascimento, created_at, falange_id, centuria_id")
         .eq("templo_id", templo_id);
       const list = (rows ?? []) as Array<{
         id: string;
         nome_completo: string;
+        sexo: string | null;
         funcao: string | null;
         polaridade: string | null;
         data_nascimento: string | null;
@@ -47,8 +48,8 @@ function DashboardPage() {
 
       const counts: Counts = {
         total: list.length,
-        mestres: list.filter((m) => m.funcao === "mestre").length,
-        ninfas: list.filter((m) => m.funcao === "ninfa").length,
+        mestres: list.filter((m) => m.sexo === "masculino").length,
+        ninfas: list.filter((m) => m.sexo === "feminino").length,
         aparas: list.filter((m) => m.polaridade === "apara").length,
         doutrinadores: list.filter((m) => m.polaridade === "doutrinador").length,
         porFalange: [],

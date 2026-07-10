@@ -9,8 +9,17 @@ import { toast } from "sonner";
 import type { CustomField } from "@/components/CustomFieldsManager";
 import { classesElevacaoFor } from "@/lib/medium-fields";
 import { situacaoBadgeClass, SITUACAO_LABEL } from "@/lib/status";
+import crucifixoAsset from "@/assets/crucifixo.jpg.asset.json";
+import trianguloAsset from "@/assets/triangulo-apara.png.asset.json";
 
 export const Route = createFileRoute("/app/mediuns/$id/")({ component: MediumDetail });
+
+const fmtDate = (v: unknown): string => {
+  if (!v || typeof v !== "string") return "—";
+  const s = v.slice(0, 10);
+  const [y, m, d] = s.split("-");
+  return y && m && d ? `${d}/${m}/${y}` : "—";
+};
 
 type Row = Record<string, unknown> & {
   id: string;
@@ -121,26 +130,33 @@ function MediumDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-[60px_1fr] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-[30px_1fr] gap-4">
         <Card>
-          <CardContent className="p-2 space-y-2 text-center">
+          <CardContent className="p-1.5 space-y-1.5 text-center">
             {fotoUrl ? (
               <img src={fotoUrl} alt="" className="w-full aspect-square object-cover rounded-md" />
             ) : (
-              <div className="w-full aspect-square rounded-md bg-primary/10 text-primary flex items-center justify-center text-base font-serif">
+              <div className="w-full aspect-square rounded-md bg-primary/10 text-primary flex items-center justify-center text-[10px] font-serif">
                 {m.nome_completo.charAt(0)}
               </div>
             )}
-            <div className="flex flex-wrap gap-1 justify-center">
+            <div className="flex flex-wrap gap-0.5 justify-center">
               {mediunidadeLabel && (
-                <span className="text-[9px] uppercase px-1 py-0.5 rounded bg-primary/10 text-primary">{mediunidadeLabel}</span>
+                <span className="text-[7px] uppercase px-0.5 py-0.5 rounded bg-primary/10 text-primary leading-none">{mediunidadeLabel}</span>
               )}
-              <span className={`text-[9px] uppercase px-1 py-0.5 rounded ${situacaoBadgeClass(m.situacao as string)}`}>
+              <span className={`text-[7px] uppercase px-0.5 py-0.5 rounded leading-none ${situacaoBadgeClass(m.situacao as string)}`}>
                 {SITUACAO_LABEL[m.situacao as string] ?? (m.situacao as string)}
               </span>
             </div>
+            {m.polaridade === "doutrinador" && (
+              <img src={crucifixoAsset.url} alt="Doutrinador(a)" className="w-6 h-6 mx-auto object-contain" />
+            )}
+            {m.polaridade === "apara" && (
+              <img src={trianguloAsset.url} alt="Apará" className="w-6 h-6 mx-auto object-contain" />
+            )}
           </CardContent>
         </Card>
+
 
         <div className="space-y-4">
           <Card>
@@ -148,12 +164,12 @@ function MediumDetail() {
             <CardContent className="grid md:grid-cols-3 gap-3">
               {info("Nome completo", m.nome_completo)}
               {info("Gênero", generoLabel)}
-              {info("Data de nascimento", m.data_nascimento)}
+              {info("Data de nascimento", fmtDate(m.data_nascimento))}
               {info("Nome da mãe", m.nome_mae)}
               {info("Nome do pai", m.nome_pai)}
-              {info("Data de ingresso", m.data_ingresso)}
+              {info("Data de ingresso", fmtDate(m.data_ingresso))}
               {info("Templo", s.templo?.nome)}
-              {info("Data da última classificação", m.data_ultima_classificacao)}
+              {info("Data da última classificação", fmtDate(m.data_ultima_classificacao))}
             </CardContent>
           </Card>
 
@@ -161,8 +177,8 @@ function MediumDetail() {
             <CardHeader><CardTitle className="text-base">Mentores / Iniciação</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
               {info("Mentores", m.mentores)}
-              {info("Data do emplacamento", m.data_emplacamento)}
-              {info("Data de iniciação", m.data_iniciacao)}
+              {info("Data do emplacamento", fmtDate(m.data_emplacamento))}
+              {info("Data de iniciação", fmtDate(m.data_iniciacao))}
               {info("Mediunidade", mediunidadeLabel)}
             </CardContent>
           </Card>
@@ -170,7 +186,7 @@ function MediumDetail() {
           <Card>
             <CardHeader><CardTitle className="text-base">Elevação de Espadas</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Data", m.data_elevacao_espadas)}
+              {info("Data", fmtDate(m.data_elevacao_espadas))}
               {info("Classe", classeLabel)}
               {info("Falange de mestrado", m.falange_mestrado)}
             </CardContent>
@@ -179,7 +195,7 @@ function MediumDetail() {
           <Card>
             <CardHeader><CardTitle className="text-base">Centúria</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Data", m.data_centuria)}
+              {info("Data", fmtDate(m.data_centuria))}
               {info("Nome na emissão", m.nome_emissao)}
               {info("Povo", m.povo)}
               {info("Adjunto", m.adjunto)}
@@ -204,9 +220,9 @@ function MediumDetail() {
           <Card>
             <CardHeader><CardTitle className="text-base">Dados complementares</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Data da última classificação", m.data_ultima_classificacao)}
-              {info("Data sétimo", m.data_setimo)}
-              {info("Data do recebimento do Cavaleiro", m.data_recebimento_cavaleiro)}
+              {info("Data da última classificação", fmtDate(m.data_ultima_classificacao))}
+              {info("Data sétimo", fmtDate(m.data_setimo))}
+              {info("Data do recebimento do Cavaleiro", fmtDate(m.data_recebimento_cavaleiro))}
               {info("Trino", trinoNome)}
               {info("Adjunto de povo", m.adjunto_povo)}
               {info("Filho(a) de Devas", m.filho_de_devas)}
