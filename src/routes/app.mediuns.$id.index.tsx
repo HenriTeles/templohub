@@ -186,7 +186,7 @@ function MediumDetail() {
           <Card>
             <CardHeader><CardTitle className="text-base">Elevação de Espadas</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Data", m.data_elevacao_espadas)}
+              {info("Data", fmtDate(m.data_elevacao_espadas))}
               {info("Classe", classeLabel)}
               {info("Falange de mestrado", m.falange_mestrado)}
             </CardContent>
@@ -195,7 +195,7 @@ function MediumDetail() {
           <Card>
             <CardHeader><CardTitle className="text-base">Centúria</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Data", m.data_centuria)}
+              {info("Data", fmtDate(m.data_centuria))}
               {info("Nome na emissão", m.nome_emissao)}
               {info("Povo", m.povo)}
               {info("Adjunto", m.adjunto)}
