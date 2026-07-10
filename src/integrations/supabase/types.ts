@@ -845,6 +845,9 @@ export type Database = {
           logo_path: string | null
           nome: string
           status: Database["public"]["Enums"]["templo_status"]
+          theme_accent: string | null
+          theme_primary: string | null
+          theme_sidebar: string | null
           updated_at: string
         }
         Insert: {
@@ -856,6 +859,9 @@ export type Database = {
           logo_path?: string | null
           nome: string
           status?: Database["public"]["Enums"]["templo_status"]
+          theme_accent?: string | null
+          theme_primary?: string | null
+          theme_sidebar?: string | null
           updated_at?: string
         }
         Update: {
@@ -867,6 +873,9 @@ export type Database = {
           logo_path?: string | null
           nome?: string
           status?: Database["public"]["Enums"]["templo_status"]
+          theme_accent?: string | null
+          theme_primary?: string | null
+          theme_sidebar?: string | null
           updated_at?: string
         }
         Relationships: []
