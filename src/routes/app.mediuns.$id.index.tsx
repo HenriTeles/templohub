@@ -220,9 +220,9 @@ function MediumDetail() {
           <Card>
             <CardHeader><CardTitle className="text-base">Dados complementares</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Data da última classificação", m.data_ultima_classificacao)}
-              {info("Data sétimo", m.data_setimo)}
-              {info("Data do recebimento do Cavaleiro", m.data_recebimento_cavaleiro)}
+              {info("Data da última classificação", fmtDate(m.data_ultima_classificacao))}
+              {info("Data sétimo", fmtDate(m.data_setimo))}
+              {info("Data do recebimento do Cavaleiro", fmtDate(m.data_recebimento_cavaleiro))}
               {info("Trino", trinoNome)}
               {info("Adjunto de povo", m.adjunto_povo)}
               {info("Filho(a) de Devas", m.filho_de_devas)}
