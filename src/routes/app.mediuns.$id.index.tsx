@@ -183,7 +183,7 @@ function MediumDetail() {
           <Card>
             <CardHeader><CardTitle className="text-base">Mentores / Iniciação</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Mentores", m.mentores)}
+              {info(m.sexo === "feminino" ? "Princesa" : "Mentores", m.mentores)}
               {info("Data do emplacamento", fmtDate(m.data_emplacamento))}
               {info("Data de iniciação", fmtDate(m.data_iniciacao))}
               {info("Mediunidade", mediunidadeLabel)}
@@ -210,32 +210,49 @@ function MediumDetail() {
               {info("Adjunto Devas", m.adjunto_devas)}
               {info("Lança", m.lanca)}
               {info("Adjunto em Trânsito", m.adjunto_transito)}
-              {info("Turno", m.turno)}
-              {info("Turno de Trabalho", m.turno_trabalho)}
-              {info("Ministro", m.ministro)}
-              {info("Cavaleiro", m.cavaleiro)}
+              {m.sexo === "feminino" ? (
+                <>
+                  {info("Estrela", m.estrela)}
+                  {info("Turno", m.turno)}
+                  {info("Turno de Trabalho", m.turno_trabalho)}
+                  {info("Guia Missionária", m.guia_missionaria)}
+                </>
+              ) : (
+                <>
+                  {info("Turno", m.turno)}
+                  {info("Turno de Trabalho", m.turno_trabalho)}
+                  {info("Ministro", m.ministro)}
+                  {info("Cavaleiro", m.cavaleiro)}
+                </>
+              )}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="text-base">Classificação do Médium</CardTitle></CardHeader>
-            <CardContent className="whitespace-pre-wrap text-sm">
-              {(m.classificacao_medium as string) || "—"}
-            </CardContent>
-          </Card>
+          {m.sexo !== "feminino" && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">Classificação do Médium</CardTitle></CardHeader>
+              <CardContent className="whitespace-pre-wrap text-sm">
+                {(m.classificacao_medium as string) || "—"}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader><CardTitle className="text-base">Dados complementares</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
               {info("Data da última classificação", fmtDate(m.data_ultima_classificacao))}
               {info("Data sétimo", fmtDate(m.data_setimo))}
-              {info("Data do recebimento do Cavaleiro", fmtDate(m.data_recebimento_cavaleiro))}
+              {m.sexo === "feminino"
+                ? info("Data de recebimento da Guia Missionária", fmtDate(m.data_recebimento_guia_missionaria))
+                : info("Data do recebimento do Cavaleiro", fmtDate(m.data_recebimento_cavaleiro))}
               {info("Trino", trinoNome)}
               {info("Adjunto de povo", m.adjunto_povo)}
               {info("Filho(a) de Devas", m.filho_de_devas)}
               {info("Recepcionista", m.recepcionista)}
+              {m.sexo === "feminino" && info("Janda", m.janda)}
             </CardContent>
           </Card>
+
 
           {customFields.length > 0 && (
             <Card>
