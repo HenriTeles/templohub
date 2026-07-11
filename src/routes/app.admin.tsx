@@ -302,6 +302,9 @@ function BrandingCard() {
       return;
     }
     setLogoPath(path);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("templohub:branding-logo-updated"));
+    }
   };
 
   return (
