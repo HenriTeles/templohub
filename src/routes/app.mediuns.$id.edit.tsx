@@ -279,7 +279,24 @@ function EditMedium() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="md:col-span-2">{field("falange_mestrado", "Falange de mestrado")}</div>
+            <div className="md:col-span-2 space-y-1.5">
+              <Label>Falange de mestrado</Label>
+              <Select
+                value={(form.falange_mestrado as string) ?? ""}
+                onValueChange={set("falange_mestrado")}
+              >
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {[
+                    "Amanhecer","Anunciação","Ascenção","Consagração","Cruzada",
+                    "Estrela Candente","Redenção","Ressurreição","Sacramento",
+                    "Solar","Sublimação","Unificação",
+                  ].map((n) => (
+                    <SelectItem key={n} value={n}>{n}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardContent>
         </Card>
 
