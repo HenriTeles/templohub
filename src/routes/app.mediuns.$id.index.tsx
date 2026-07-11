@@ -131,9 +131,9 @@ function MediumDetail() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
-        <Card className="w-[120px] shrink-0 mx-auto md:mx-0">
-          <CardContent className="p-2 space-y-1 text-center">
-            <div className="w-[104px] h-[104px] mx-auto rounded-md overflow-hidden bg-primary/10 text-primary flex items-center justify-center">
+        <Card className="w-[370px] shrink-0 mx-auto md:mx-0">
+          <CardContent className="p-3 space-y-2 text-center">
+            <div className="w-[350px] h-[350px] mx-auto rounded-md overflow-hidden bg-primary/10 text-primary flex items-center justify-center">
               {fotoUrl ? (
                 <img
                   src={fotoUrl}
@@ -143,25 +143,26 @@ function MediumDetail() {
                   height={1080}
                 />
               ) : (
-                <span className="text-xs font-serif">{m.nome_completo.charAt(0)}</span>
+                <span className="text-4xl font-serif">{m.nome_completo.charAt(0)}</span>
               )}
             </div>
-            <div className="flex flex-wrap gap-0.5 justify-center">
+            <div className="flex flex-wrap gap-1 justify-center">
               {mediunidadeLabel && (
-                <span className="text-[8px] uppercase px-1 py-0.5 rounded bg-primary/10 text-primary leading-none">{mediunidadeLabel}</span>
+                <span className="text-xs uppercase px-2 py-0.5 rounded bg-primary/10 text-primary">{mediunidadeLabel}</span>
               )}
-              <span className={`text-[8px] uppercase px-1 py-0.5 rounded leading-none ${situacaoBadgeClass(m.situacao as string)}`}>
+              <span className={`text-xs uppercase px-2 py-0.5 rounded ${situacaoBadgeClass(m.situacao as string)}`}>
                 {SITUACAO_LABEL[m.situacao as string] ?? (m.situacao as string)}
               </span>
             </div>
             {m.polaridade === "doutrinador" && (
-              <img src={crucifixoAsset.url} alt="Doutrinador(a)" className="w-6 h-6 mx-auto object-contain" />
+              <img src={crucifixoAsset.url} alt="Doutrinador(a)" className="w-12 h-12 mx-auto object-contain" />
             )}
             {m.polaridade === "apara" && (
-              <img src={trianguloAsset.url} alt="Apará" className="w-6 h-6 mx-auto object-contain" />
+              <img src={trianguloAsset.url} alt="Apará" className="w-12 h-12 mx-auto object-contain" />
             )}
           </CardContent>
         </Card>
+
 
         <div className="flex-1 space-y-4">
 
@@ -182,7 +183,7 @@ function MediumDetail() {
           <Card>
             <CardHeader><CardTitle className="text-base">Mentores / Iniciação</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
-              {info("Mentores", m.mentores)}
+              {info(m.sexo === "feminino" ? "Princesa" : "Mentores", m.mentores)}
               {info("Data do emplacamento", fmtDate(m.data_emplacamento))}
               {info("Data de iniciação", fmtDate(m.data_iniciacao))}
               {info("Mediunidade", mediunidadeLabel)}
@@ -209,32 +210,49 @@ function MediumDetail() {
               {info("Adjunto Devas", m.adjunto_devas)}
               {info("Lança", m.lanca)}
               {info("Adjunto em Trânsito", m.adjunto_transito)}
-              {info("Turno", m.turno)}
-              {info("Turno de Trabalho", m.turno_trabalho)}
-              {info("Ministro", m.ministro)}
-              {info("Cavaleiro", m.cavaleiro)}
+              {m.sexo === "feminino" ? (
+                <>
+                  {info("Estrela", m.estrela)}
+                  {info("Turno", m.turno)}
+                  {info("Turno de Trabalho", m.turno_trabalho)}
+                  {info("Guia Missionária", m.guia_missionaria)}
+                </>
+              ) : (
+                <>
+                  {info("Turno", m.turno)}
+                  {info("Turno de Trabalho", m.turno_trabalho)}
+                  {info("Ministro", m.ministro)}
+                  {info("Cavaleiro", m.cavaleiro)}
+                </>
+              )}
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="text-base">Classificação do Médium</CardTitle></CardHeader>
-            <CardContent className="whitespace-pre-wrap text-sm">
-              {(m.classificacao_medium as string) || "—"}
-            </CardContent>
-          </Card>
+          {m.sexo !== "feminino" && (
+            <Card>
+              <CardHeader><CardTitle className="text-base">Classificação do Médium</CardTitle></CardHeader>
+              <CardContent className="whitespace-pre-wrap text-sm">
+                {(m.classificacao_medium as string) || "—"}
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader><CardTitle className="text-base">Dados complementares</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
               {info("Data da última classificação", fmtDate(m.data_ultima_classificacao))}
               {info("Data sétimo", fmtDate(m.data_setimo))}
-              {info("Data do recebimento do Cavaleiro", fmtDate(m.data_recebimento_cavaleiro))}
+              {m.sexo === "feminino"
+                ? info("Data de recebimento da Guia Missionária", fmtDate(m.data_recebimento_guia_missionaria))
+                : info("Data do recebimento do Cavaleiro", fmtDate(m.data_recebimento_cavaleiro))}
               {info("Trino", trinoNome)}
               {info("Adjunto de povo", m.adjunto_povo)}
               {info("Filho(a) de Devas", m.filho_de_devas)}
               {info("Recepcionista", m.recepcionista)}
+              {m.sexo === "feminino" && info("Janda", m.janda)}
             </CardContent>
           </Card>
+
 
           {customFields.length > 0 && (
             <Card>

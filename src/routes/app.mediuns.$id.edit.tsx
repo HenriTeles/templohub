@@ -234,12 +234,12 @@ function EditMedium() {
           <CardHeader><CardTitle className="text-base">Mentores / Iniciação</CardTitle></CardHeader>
           <CardContent className="grid md:grid-cols-2 gap-4">
             <div className="md:col-span-2 space-y-1.5">
-              <Label>Mentores</Label>
+              <Label>{sexo === "feminino" ? "Princesa" : "Mentores"}</Label>
               <Textarea
                 rows={2}
                 value={(form.mentores as string) ?? ""}
                 onChange={(e) => set("mentores")(e.target.value)}
-                placeholder="Nome(s) dos mentores"
+                placeholder={sexo === "feminino" ? "Nome da Princesa" : "Nome(s) dos mentores"}
               />
             </div>
             {field("data_emplacamento", "Data do emplacamento", "date")}
@@ -308,28 +308,50 @@ function EditMedium() {
                 </SelectContent>
               </Select>
             </div>
-            {field("adjunto_devas", "Adjunto Devas")}
+            <div className="space-y-1.5">
+              <Label>Adjunto Devas</Label>
+              <Select value={(form.adjunto_devas as string) ?? ""} onValueChange={set("adjunto_devas")}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Alufã">Alufã</SelectItem>
+                  <SelectItem value="Adejã">Adejã</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             {field("lanca", "Lança")}
             {field("adjunto_transito", "Adjunto em Trânsito")}
-            {field("turno", "Turno")}
-            {field("turno_trabalho", "Turno de Trabalho")}
-            {field("ministro", "Ministro")}
-            {field("cavaleiro", "Cavaleiro")}
+            {sexo === "feminino" ? (
+              <>
+                {field("estrela", "Estrela")}
+                {field("turno", "Turno")}
+                {field("turno_trabalho", "Turno de Trabalho")}
+                {field("guia_missionaria", "Guia Missionária")}
+              </>
+            ) : (
+              <>
+                {field("turno", "Turno")}
+                {field("turno_trabalho", "Turno de Trabalho")}
+                {field("ministro", "Ministro")}
+                {field("cavaleiro", "Cavaleiro")}
+              </>
+            )}
           </CardContent>
         </Card>
 
         {/* ============================ 5. CLASSIFICAÇÃO ============================ */}
-        <Card>
-          <CardHeader><CardTitle className="text-base">Classificação do Médium</CardTitle></CardHeader>
-          <CardContent>
-            <Textarea
-              rows={3}
-              value={(form.classificacao_medium as string) ?? ""}
-              onChange={(e) => set("classificacao_medium")(e.target.value)}
-              placeholder="Classificação do médium"
-            />
-          </CardContent>
-        </Card>
+        {sexo !== "feminino" && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">Classificação do Médium</CardTitle></CardHeader>
+            <CardContent>
+              <Textarea
+                rows={3}
+                value={(form.classificacao_medium as string) ?? ""}
+                onChange={(e) => set("classificacao_medium")(e.target.value)}
+                placeholder="Classificação do médium"
+              />
+            </CardContent>
+          </Card>
+        )}
 
         {/* ============================ 6. DADOS COMPLEMENTARES ============================ */}
         <Card>
@@ -337,7 +359,9 @@ function EditMedium() {
           <CardContent className="grid md:grid-cols-2 gap-4">
             {field("data_ultima_classificacao", "Data da última classificação", "date")}
             {field("data_setimo", "Data sétimo", "date")}
-            {field("data_recebimento_cavaleiro", "Data do recebimento do Cavaleiro", "date")}
+            {sexo === "feminino"
+              ? field("data_recebimento_guia_missionaria", "Data de recebimento da Guia Missionária", "date")
+              : field("data_recebimento_cavaleiro", "Data do recebimento do Cavaleiro", "date")}
             <div className="space-y-1.5">
               <Label>Trino</Label>
               <Select value={(form.trino_id as string) ?? ""} onValueChange={set("trino_id")}>
@@ -358,8 +382,24 @@ function EditMedium() {
               />
               Recepcionista
             </label>
+            {sexo === "feminino" && (
+              <div className="space-y-1.5 md:col-span-2">
+                <Label>Janda</Label>
+                <Select
+                  value={form.janda === true ? "sim" : form.janda === false ? "nao" : ""}
+                  onValueChange={(v) => set("janda")(v === "sim")}
+                >
+                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="sim">Sim</SelectItem>
+                    <SelectItem value="nao">Não</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </CardContent>
         </Card>
+
 
         {/* ============================ CAMPOS PERSONALIZADOS ============================ */}
         {rootCustom.length > 0 && (
