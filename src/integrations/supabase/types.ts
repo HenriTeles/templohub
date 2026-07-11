@@ -444,6 +444,7 @@ export type Database = {
           data_inicio_desenvolvimento: string | null
           data_nascimento: string | null
           data_recebimento_cavaleiro: string | null
+          data_recebimento_guia_missionaria: string | null
           data_setimo: string | null
           data_ultima_classificacao: string | null
           doenca_descricao: string | null
@@ -451,6 +452,7 @@ export type Database = {
           endereco: string | null
           estado: string | null
           estado_civil: string | null
+          estrela: string | null
           falange_id: string | null
           falange_mestrado: string | null
           falange_missionaria: string | null
@@ -460,6 +462,7 @@ export type Database = {
           funcao: Database["public"]["Enums"]["mediun_funcao"] | null
           guia_missionaria: string | null
           id: string
+          janda: boolean
           lanca: string | null
           legiao_id: string | null
           medicamento_controlado: boolean | null
@@ -521,6 +524,7 @@ export type Database = {
           data_inicio_desenvolvimento?: string | null
           data_nascimento?: string | null
           data_recebimento_cavaleiro?: string | null
+          data_recebimento_guia_missionaria?: string | null
           data_setimo?: string | null
           data_ultima_classificacao?: string | null
           doenca_descricao?: string | null
@@ -528,6 +532,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           estado_civil?: string | null
+          estrela?: string | null
           falange_id?: string | null
           falange_mestrado?: string | null
           falange_missionaria?: string | null
@@ -537,6 +542,7 @@ export type Database = {
           funcao?: Database["public"]["Enums"]["mediun_funcao"] | null
           guia_missionaria?: string | null
           id?: string
+          janda?: boolean
           lanca?: string | null
           legiao_id?: string | null
           medicamento_controlado?: boolean | null
@@ -598,6 +604,7 @@ export type Database = {
           data_inicio_desenvolvimento?: string | null
           data_nascimento?: string | null
           data_recebimento_cavaleiro?: string | null
+          data_recebimento_guia_missionaria?: string | null
           data_setimo?: string | null
           data_ultima_classificacao?: string | null
           doenca_descricao?: string | null
@@ -605,6 +612,7 @@ export type Database = {
           endereco?: string | null
           estado?: string | null
           estado_civil?: string | null
+          estrela?: string | null
           falange_id?: string | null
           falange_mestrado?: string | null
           falange_missionaria?: string | null
@@ -614,6 +622,7 @@ export type Database = {
           funcao?: Database["public"]["Enums"]["mediun_funcao"] | null
           guia_missionaria?: string | null
           id?: string
+          janda?: boolean
           lanca?: string | null
           legiao_id?: string | null
           medicamento_controlado?: boolean | null
