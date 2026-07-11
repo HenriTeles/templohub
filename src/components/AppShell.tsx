@@ -26,14 +26,17 @@ function useBrandingLogo() {
   const [url, setUrl] = useState<string>(defaultLogo.url);
   useEffect(() => {
     let alive = true;
-    (async () => {
+    const load = async () => {
       const { data } = await supabase.from("app_settings").select("logo_path").eq("id", 1).maybeSingle();
       const path = (data as { logo_path: string | null } | null)?.logo_path;
-      if (!path) return;
+      if (!path) { if (alive) setUrl(defaultLogo.url); return; }
       const { data: signed } = await supabase.storage.from("app-branding").createSignedUrl(path, 3600);
       if (alive && signed?.signedUrl) setUrl(signed.signedUrl);
-    })();
-    return () => { alive = false; };
+    };
+    load();
+    const handler = () => load();
+    window.addEventListener("templohub:branding-logo-updated", handler);
+    return () => { alive = false; window.removeEventListener("templohub:branding-logo-updated", handler); };
   }, []);
   return url;
 }
