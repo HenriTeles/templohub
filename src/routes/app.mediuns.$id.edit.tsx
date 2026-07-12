@@ -102,8 +102,20 @@ function EditMedium() {
     if (form.falange_missionaria && !falangesMiss.includes(form.falange_missionaria as never)) {
       setForm((f) => ({ ...f, falange_missionaria: null }));
     }
+    if (form.turno && !turnos.includes(form.turno as never)) {
+      setForm((f) => ({ ...f, turno: null }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sexo]);
+
+  // Clear Janda when falange no longer qualifies.
+  useEffect(() => {
+    if (!jandaAplica && form.janda != null) {
+      setForm((f) => ({ ...f, janda: null }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jandaAplica]);
+
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
