@@ -131,9 +131,10 @@ function MediumDetail() {
       </div>
 
       <div className="flex flex-col md:flex-row gap-4">
-        <Card className="w-[370px] shrink-0 mx-auto md:mx-0">
+        <Card className="w-[195px] shrink-0 mx-auto md:mx-0">
           <CardContent className="p-3 space-y-2 text-center">
-            <div className="w-[350px] h-[350px] mx-auto rounded-md overflow-hidden bg-primary/10 text-primary flex items-center justify-center">
+            <div className="w-[175px] h-[175px] mx-auto rounded-md overflow-hidden bg-primary/10 text-primary flex items-center justify-center">
+
               {fotoUrl ? (
                 <img
                   src={fotoUrl}
