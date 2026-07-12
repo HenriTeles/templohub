@@ -20,6 +20,9 @@ import type { CustomField } from "@/components/CustomFieldsManager";
 import {
   classesElevacaoFor,
   falangesMissionariasFor,
+  turnosFor,
+  TURNOS_TRABALHO,
+  FALANGES_JANDA,
   type Sexo,
 } from "@/lib/medium-fields";
 
@@ -49,8 +52,12 @@ function EditMedium() {
   const [busy, setBusy] = useState(false);
   const [foto, setFoto] = useState<File | null>(null);
 
+  const loadedIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!s.templo?.id) return;
+    if (loadedIdRef.current === id) return;
+    loadedIdRef.current = id;
     (async () => {
       const [{ data: ts }, { data: cf }] = await Promise.all([
         db.from("trinos").select("id, nome").order("nome"),
