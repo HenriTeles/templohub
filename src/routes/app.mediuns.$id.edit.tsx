@@ -358,21 +358,36 @@ function EditMedium() {
             </div>
             {field("lanca", "Lança")}
             {field("adjunto_transito", "Adjunto em Trânsito")}
+            <div className="space-y-1.5">
+              <Label>Turno</Label>
+              <Select value={(form.turno as string) ?? ""} onValueChange={set("turno")} disabled={!sexo}>
+                <SelectTrigger><SelectValue placeholder={sexo ? "Selecione" : "Escolha o gênero primeiro"} /></SelectTrigger>
+                <SelectContent>
+                  {turnos.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Turno de Trabalho</Label>
+              <Select value={(form.turno_trabalho as string) ?? ""} onValueChange={set("turno_trabalho")}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {TURNOS_TRABALHO.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             {sexo === "feminino" ? (
               <>
                 {field("estrela", "Estrela")}
-                {field("turno", "Turno")}
-                {field("turno_trabalho", "Turno de Trabalho")}
                 {field("guia_missionaria", "Guia Missionária")}
               </>
             ) : (
               <>
-                {field("turno", "Turno")}
-                {field("turno_trabalho", "Turno de Trabalho")}
                 {field("ministro", "Ministro")}
                 {field("cavaleiro", "Cavaleiro")}
               </>
             )}
+
           </CardContent>
         </Card>
 
