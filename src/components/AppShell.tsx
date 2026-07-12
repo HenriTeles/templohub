@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import defaultLogo from "@/assets/templohub-logo.png.asset.json";
+import { useBrandingLogo } from "@/lib/branding";
 
 const NAV = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -21,25 +21,6 @@ const ROLE_LABEL: Record<Role, string> = {
   secretario: "Secretário",
   consulta: "Consulta",
 };
-
-function useBrandingLogo() {
-  const [url, setUrl] = useState<string>(defaultLogo.url);
-  useEffect(() => {
-    let alive = true;
-    const load = async () => {
-      const { data } = await supabase.from("app_settings").select("logo_path").eq("id", 1).maybeSingle();
-      const path = (data as { logo_path: string | null } | null)?.logo_path;
-      if (!path) { if (alive) setUrl(defaultLogo.url); return; }
-      const { data: signed } = await supabase.storage.from("app-branding").createSignedUrl(path, 3600);
-      if (alive && signed?.signedUrl) setUrl(signed.signedUrl);
-    };
-    load();
-    const handler = () => load();
-    window.addEventListener("templohub:branding-logo-updated", handler);
-    return () => { alive = false; window.removeEventListener("templohub:branding-logo-updated", handler); };
-  }, []);
-  return url;
-}
 
 function useTemploLogo(path: string | null | undefined) {
   const [url, setUrl] = useState<string | null>(null);
