@@ -111,11 +111,17 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {/* Divider + section label */}
+      {/* Divider + section label with golden diamond ornament */}
       <div className="px-5 pt-5">
         <div className="border-t border-sidebar-border/60" />
-        <div className="mt-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-foreground/50">
-          Navegação
+        <div className="mt-4 flex items-center gap-3">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sidebar-primary">
+            Navegação
+          </div>
+          <svg viewBox="0 0 12 12" className="w-2.5 h-2.5 text-sidebar-primary shrink-0" fill="currentColor" aria-hidden>
+            <path d="M6 0 L12 6 L6 12 L0 6 Z" />
+          </svg>
+          <div className="flex-1 h-px bg-gradient-to-r from-sidebar-primary/60 to-transparent" />
         </div>
       </div>
 
@@ -152,8 +158,26 @@ export function AppShell({ children }: { children: ReactNode }) {
         })}
       </nav>
 
+      {/* Sun ornament */}
+      <div className="px-6 pt-4 pb-2 flex items-center gap-2 text-sidebar-primary/80">
+        <svg viewBox="0 0 6 6" className="w-1.5 h-1.5 shrink-0" fill="currentColor" aria-hidden>
+          <path d="M3 0 L6 3 L3 6 L0 3 Z" />
+        </svg>
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-sidebar-primary/50 to-transparent" />
+        <svg viewBox="0 0 40 20" className="w-12 h-6 shrink-0" fill="none" stroke="currentColor" strokeWidth="0.8" aria-hidden>
+          <path d="M2 18 A 18 18 0 0 1 38 18" />
+          <path d="M20 18 L20 2 M20 18 L8 6 M20 18 L32 6 M20 18 L4 12 M20 18 L36 12 M20 18 L14 3 M20 18 L26 3" strokeLinecap="round" />
+          <circle cx="20" cy="18" r="2" fill="currentColor" />
+        </svg>
+        <div className="flex-1 h-px bg-gradient-to-r from-transparent via-sidebar-primary/50 to-transparent" />
+        <svg viewBox="0 0 6 6" className="w-1.5 h-1.5 shrink-0" fill="currentColor" aria-hidden>
+          <path d="M3 0 L6 3 L3 6 L0 3 Z" />
+        </svg>
+      </div>
+
       {/* Footer */}
       <div className="p-4 space-y-2">
+
         <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/60 p-3">
           <div className="w-10 h-10 rounded-full bg-sidebar-primary/15 flex items-center justify-center shrink-0 ring-1 ring-sidebar-primary/30">
             <Mail className="w-4 h-4 text-sidebar-primary" />
