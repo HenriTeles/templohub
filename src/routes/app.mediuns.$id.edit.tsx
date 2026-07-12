@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
 import { useSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +20,9 @@ import type { CustomField } from "@/components/CustomFieldsManager";
 import {
   classesElevacaoFor,
   falangesMissionariasFor,
+  turnosFor,
+  TURNOS_TRABALHO,
+  FALANGES_JANDA,
   type Sexo,
 } from "@/lib/medium-fields";
 
@@ -49,8 +52,12 @@ function EditMedium() {
   const [busy, setBusy] = useState(false);
   const [foto, setFoto] = useState<File | null>(null);
 
+  const loadedIdRef = useRef<string | null>(null);
+
   useEffect(() => {
     if (!s.templo?.id) return;
+    if (loadedIdRef.current === id) return;
+    loadedIdRef.current = id;
     (async () => {
       const [{ data: ts }, { data: cf }] = await Promise.all([
         db.from("trinos").select("id, nome").order("nome"),
@@ -84,6 +91,8 @@ function EditMedium() {
   const sexo = (form.sexo as Sexo | null) ?? null;
   const classesElev = useMemo(() => classesElevacaoFor(sexo), [sexo]);
   const falangesMiss = useMemo(() => falangesMissionariasFor(sexo), [sexo]);
+  const turnos = useMemo(() => turnosFor(sexo), [sexo]);
+  const jandaAplica = sexo === "feminino" && FALANGES_JANDA.includes(form.falange_missionaria as never);
 
   // Clear gender-conditional selections when they become invalid.
   useEffect(() => {
@@ -93,8 +102,20 @@ function EditMedium() {
     if (form.falange_missionaria && !falangesMiss.includes(form.falange_missionaria as never)) {
       setForm((f) => ({ ...f, falange_missionaria: null }));
     }
+    if (form.turno && !turnos.includes(form.turno as never)) {
+      setForm((f) => ({ ...f, turno: null }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sexo]);
+
+  // Clear Janda when falange no longer qualifies.
+  useEffect(() => {
+    if (!jandaAplica && form.janda != null) {
+      setForm((f) => ({ ...f, janda: null }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jandaAplica]);
+
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -337,21 +358,36 @@ function EditMedium() {
             </div>
             {field("lanca", "Lança")}
             {field("adjunto_transito", "Adjunto em Trânsito")}
+            <div className="space-y-1.5">
+              <Label>Turno</Label>
+              <Select value={(form.turno as string) ?? ""} onValueChange={set("turno")} disabled={!sexo}>
+                <SelectTrigger><SelectValue placeholder={sexo ? "Selecione" : "Escolha o gênero primeiro"} /></SelectTrigger>
+                <SelectContent>
+                  {turnos.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Turno de Trabalho</Label>
+              <Select value={(form.turno_trabalho as string) ?? ""} onValueChange={set("turno_trabalho")}>
+                <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {TURNOS_TRABALHO.map((t) => <SelectItem key={t} value={t}>{t}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
             {sexo === "feminino" ? (
               <>
                 {field("estrela", "Estrela")}
-                {field("turno", "Turno")}
-                {field("turno_trabalho", "Turno de Trabalho")}
                 {field("guia_missionaria", "Guia Missionária")}
               </>
             ) : (
               <>
-                {field("turno", "Turno")}
-                {field("turno_trabalho", "Turno de Trabalho")}
                 {field("ministro", "Ministro")}
                 {field("cavaleiro", "Cavaleiro")}
               </>
             )}
+
           </CardContent>
         </Card>
 
@@ -399,7 +435,7 @@ function EditMedium() {
               />
               Recepcionista
             </label>
-            {sexo === "feminino" && (
+            {jandaAplica && (
               <div className="space-y-1.5 md:col-span-2">
                 <Label>Janda</Label>
                 <Select

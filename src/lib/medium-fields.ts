@@ -3,7 +3,8 @@
 export type Sexo = "masculino" | "feminino";
 
 export const FALANGES_MISSIONARIAS_FEM = [
-  "Nityama/Madruxa",
+  "Nityama",
+  "Nityama Madruxa",
   "Samaritana",
   "Grega",
   "Maya",
@@ -28,6 +29,17 @@ export const FALANGES_MISSIONARIAS_FEM = [
 
 export const FALANGES_MISSIONARIAS_MASC = ["Mago", "Príncipe Maya"] as const;
 
+export const FALANGES_JANDA = ["Yuricy", "Yuricy Lua"] as const;
+
+export const TURNOS_MASC = ["Reili", "Dubali"] as const;
+export const TURNOS_FEM = ["Doragana", "Sabarana"] as const;
+
+export const TURNOS_TRABALHO = [
+  "Adelanos", "Adonares", "Aganaros", "Ajouros", "Amoros",
+  "Galero", "Gramouros", "Maturos", "Muranos", "Savanos",
+  "Valúrios", "Venário", "Venário especial", "Vogues",
+] as const;
+
 export const CLASSES_ELEVACAO_MASC = [
   { v: "mestre_lua", l: "Mestre Lua" },
   { v: "mestre_sol", l: "Mestre Sol" },
@@ -47,5 +59,11 @@ export function classesElevacaoFor(sexo: Sexo | null | undefined) {
 export function falangesMissionariasFor(sexo: Sexo | null | undefined) {
   if (sexo === "masculino") return FALANGES_MISSIONARIAS_MASC;
   if (sexo === "feminino") return FALANGES_MISSIONARIAS_FEM;
+  return [] as ReadonlyArray<string>;
+}
+
+export function turnosFor(sexo: Sexo | null | undefined) {
+  if (sexo === "masculino") return TURNOS_MASC;
+  if (sexo === "feminino") return TURNOS_FEM;
   return [] as ReadonlyArray<string>;
 }

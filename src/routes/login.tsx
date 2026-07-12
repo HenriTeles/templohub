@@ -1,12 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { db as supabase } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import logoAsset from "@/assets/templohub-logo.png.asset.json";
+import { useBrandingLogo } from "@/lib/branding";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -17,19 +17,7 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
   const [busy, setBusy] = useState(false);
-  const [logoUrl, setLogoUrl] = useState<string>(logoAsset.url);
-
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      const { data } = await supabase.from("app_settings").select("logo_path").eq("id", 1).maybeSingle();
-      const path = (data as { logo_path: string | null } | null)?.logo_path;
-      if (!path) return;
-      const { data: signed } = await supabase.storage.from("app-branding").createSignedUrl(path, 3600);
-      if (alive && signed?.signedUrl) setLogoUrl(signed.signedUrl);
-    })();
-    return () => { alive = false; };
-  }, []);
+  const logoUrl = useBrandingLogo();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
