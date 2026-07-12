@@ -435,7 +435,7 @@ function EditMedium() {
               />
               Recepcionista
             </label>
-            {sexo === "feminino" && (
+            {jandaAplica && (
               <div className="space-y-1.5 md:col-span-2">
                 <Label>Janda</Label>
                 <Select
