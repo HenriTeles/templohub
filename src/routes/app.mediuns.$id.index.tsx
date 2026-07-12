@@ -250,7 +250,7 @@ function MediumDetail() {
               {info("Adjunto de povo", m.adjunto_povo)}
               {info("Filho(a) de Devas", m.filho_de_devas)}
               {info("Recepcionista", m.recepcionista)}
-              {m.sexo === "feminino" && info("Janda", m.janda)}
+              {m.sexo === "feminino" && (m.falange_missionaria === "Yuricy" || m.falange_missionaria === "Yuricy Lua") && info("Janda", m.janda)}
             </CardContent>
           </Card>
 
