@@ -91,6 +91,8 @@ function EditMedium() {
   const sexo = (form.sexo as Sexo | null) ?? null;
   const classesElev = useMemo(() => classesElevacaoFor(sexo), [sexo]);
   const falangesMiss = useMemo(() => falangesMissionariasFor(sexo), [sexo]);
+  const turnos = useMemo(() => turnosFor(sexo), [sexo]);
+  const jandaAplica = sexo === "feminino" && FALANGES_JANDA.includes(form.falange_missionaria as never);
 
   // Clear gender-conditional selections when they become invalid.
   useEffect(() => {
