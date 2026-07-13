@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
+import { SITUACAO_LABEL, situacaoBadgeClass } from "@/lib/status";
+import crucifixo from "@/assets/crucifixo.jpg.asset.json";
+import triangulo from "@/assets/triangulo-apara.png.asset.json";
 
 export const Route = createFileRoute("/app/mediuns/")({ component: MediunsPage });
 
