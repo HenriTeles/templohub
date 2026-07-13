@@ -70,8 +70,8 @@ export const updateTemplo = createServerFn({ method: "POST" })
     const { error } = await supabaseAdmin.rpc("update_templo", {
       _templo_id: data.templo_id,
       _nome: data.nome,
-      _cidade: data.cidade,
-      _estado: data.estado,
+      _cidade: data.cidade ?? undefined,
+      _estado: data.estado ?? undefined,
       _status: data.status,
     });
     if (error) throw new Error(error.message);
