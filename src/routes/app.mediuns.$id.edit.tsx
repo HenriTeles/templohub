@@ -209,7 +209,7 @@ function EditMedium() {
       <div className="mb-4">
         <h1 className="text-2xl font-semibold">{isNew ? "Novo Médium" : "Editar Médium"}</h1>
       </div>
-      <form onSubmit={save} className="space-y-4">
+      <form id="mediun-edit-form" onSubmit={save} className="space-y-4 pb-24">
         {/* ============================ 1. DADOS GERAIS ============================ */}
         <Card>
           <CardHeader><CardTitle className="text-base">Dados Gerais</CardTitle></CardHeader>
