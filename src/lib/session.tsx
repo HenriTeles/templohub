@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { db as supabase } from "@/lib/db";
 import type { Session } from "@supabase/supabase-js";
+import { getCurrentSessionData } from "@/lib/session.functions";
 
 export type Role = "super_admin" | "admin" | "secretario" | "consulta";
 
@@ -19,6 +20,7 @@ export type SessionState = {
     theme_sidebar?: string | null;
   } | null;
   roles: Role[];
+  accountError: string | null;
   refresh: () => Promise<void>;
 };
 
@@ -30,46 +32,29 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<SessionState["profile"]>(null);
   const [templo, setTemplo] = useState<SessionState["templo"]>(null);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [accountError, setAccountError] = useState<string | null>(null);
   const lastUid = useRef<string | null>(null);
 
-  const load = async (uid: string | undefined | null) => {
-    if (!uid) {
+  const load = async (currentSession: Session | null | undefined) => {
+    if (!currentSession?.user.id) {
       setProfile(null);
       setTemplo(null);
       setRoles([]);
+      setAccountError(null);
       return;
     }
-    const [{ data: p }, { data: r }] = await Promise.all([
-      supabase.from("profiles").select("id, templo_id, nome, email").eq("id", uid).maybeSingle(),
-      supabase.from("user_roles").select("role").eq("user_id", uid),
-    ]);
-    setProfile(p as SessionState["profile"]);
-    const rr = ((r as { role: Role }[]) || []).map((x) => x.role);
-    setRoles(rr);
-    const templo_id = (p as { templo_id?: string | null } | null)?.templo_id ?? null;
-    if (templo_id && !rr.includes("super_admin")) {
-      const { data: t } = await supabase
-        .from("templos")
-        .select("id, nome, status, logo_path")
-        .eq("id", templo_id)
-        .maybeSingle();
-      // Theme columns are optional — swallow errors if migration not applied.
-      let theme: {
-        theme_primary: string | null;
-        theme_accent: string | null;
-        theme_sidebar: string | null;
-      } | null = null;
-      try {
-        const { data: th } = await supabase
-          .from("templos")
-          .select("theme_primary, theme_accent, theme_sidebar" as never)
-          .eq("id", templo_id)
-          .maybeSingle();
-        theme = th as typeof theme;
-      } catch { /* migration not applied yet */ }
-      setTemplo({ ...(t as SessionState["templo"] & object), ...(theme ?? {}) } as SessionState["templo"]);
-    } else {
+    try {
+      const data = await getCurrentSessionData();
+      setProfile(data.profile as SessionState["profile"]);
+      setRoles((data.roles ?? []) as Role[]);
+      setTemplo(data.templo as SessionState["templo"]);
+      setAccountError(null);
+    } catch (err) {
+      console.error("Erro ao carregar dados da conta", err);
+      setProfile(null);
       setTemplo(null);
+      setRoles([]);
+      setAccountError("Não foi possível carregar os dados da sua conta. Tente novamente.");
     }
   };
 
@@ -79,21 +64,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       if (!mounted) return;
       setSession(data.session);
       lastUid.current = data.session?.user.id ?? null;
-      await load(data.session?.user.id);
+      await load(data.session);
       setLoading(false);
     });
     const { data: sub } = supabase.auth.onAuthStateChange(async (event: string, s: Session | null) => {
       // Only react to identity transitions; ignore INITIAL_SESSION and TOKEN_REFRESHED
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       const uid = s?.user.id ?? null;
-      // avoid duplicate work when SIGNED_IN fires for the same user we already loaded
-      if (event === "SIGNED_IN" && uid === lastUid.current && profile) return;
       lastUid.current = uid;
       // Mark loading BEFORE exposing the new session so route gates (e.g. "/")
       // don't observe { session: signed-in, profile: null } and mistake it for
       // "no templo" → redirect to /onboarding.
       setLoading(true);
-      await load(uid);
+      await load(s);
       setSession(s);
       setLoading(false);
     });
@@ -112,9 +95,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       profile,
       templo,
       roles,
-      refresh: () => load(session?.user.id),
+      accountError,
+      refresh: () => load(session),
     }),
-    [loading, session, profile, templo, roles],
+    [loading, session, profile, templo, roles, accountError],
   );
 
   return <SessionCtx.Provider value={value}>{children}</SessionCtx.Provider>;
@@ -131,6 +115,7 @@ export function useSession(): SessionState {
       profile: null,
       templo: null,
       roles: [],
+      accountError: null,
       refresh: async () => {},
     };
   }
