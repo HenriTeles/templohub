@@ -106,7 +106,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </div>
-            <ChevronRight className="w-4 h-4 text-sidebar-foreground/60 shrink-0" />
           </div>
         </div>
       )}
