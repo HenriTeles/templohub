@@ -503,9 +503,22 @@ function EditMedium() {
           </Button>
         </div>
       </form>
+
+      {/* Floating Save button */}
+      <button
+        type="submit"
+        form="mediun-edit-form"
+        disabled={busy}
+        className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-12 shadow-lg shadow-primary/30 hover:brightness-110 disabled:opacity-60 transition"
+        aria-label="Salvar"
+      >
+        {busy ? "Salvando…" : "Salvar"}
+      </button>
     </div>
   );
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _keep = 0;
 
 function CustomFieldInput({
   field,
