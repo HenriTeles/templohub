@@ -209,7 +209,7 @@ function EditMedium() {
       <div className="mb-4">
         <h1 className="text-2xl font-semibold">{isNew ? "Novo Médium" : "Editar Médium"}</h1>
       </div>
-      <form onSubmit={save} className="space-y-4">
+      <form id="mediun-edit-form" onSubmit={save} className="space-y-4 pb-24">
         {/* ============================ 1. DADOS GERAIS ============================ */}
         <Card>
           <CardHeader><CardTitle className="text-base">Dados Gerais</CardTitle></CardHeader>
@@ -503,9 +503,22 @@ function EditMedium() {
           </Button>
         </div>
       </form>
+
+      {/* Floating Save button */}
+      <button
+        type="submit"
+        form="mediun-edit-form"
+        disabled={busy}
+        className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-12 shadow-lg shadow-primary/30 hover:brightness-110 disabled:opacity-60 transition"
+        aria-label="Salvar"
+      >
+        {busy ? "Salvando…" : "Salvar"}
+      </button>
     </div>
   );
 }
+
+
 
 function CustomFieldInput({
   field,

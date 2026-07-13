@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
+import { SITUACAO_LABEL, situacaoBadgeClass } from "@/lib/status";
+import crucifixo from "@/assets/crucifixo.jpg.asset.json";
+import triangulo from "@/assets/triangulo-apara.png.asset.json";
 
 export const Route = createFileRoute("/app/mediuns/")({ component: MediunsPage });
 
@@ -76,21 +79,34 @@ function MediunsPage() {
                   <div className="text-xs text-muted-foreground truncate">
                     {[r.nome_emissao, r.cidade].filter(Boolean).join(" · ") || "—"}
                   </div>
-                  <div className="mt-1 flex gap-1 flex-wrap">
-                    {r.funcao && (
-                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-accent/30 text-primary">
-                        {r.funcao}
-                      </span>
-                    )}
+                  <div className="mt-1 flex gap-1 flex-wrap items-center">
                     {r.polaridade && (
-                      <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                        {r.polaridade}
+                      <span
+                        className={
+                          "inline-flex items-center gap-1 text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded " +
+                          (r.polaridade === "apara"
+                            ? "bg-red-100 text-red-800"
+                            : "bg-neutral-200 text-neutral-800")
+                        }
+                      >
+                        <img
+                          src={r.polaridade === "apara" ? triangulo.url : crucifixo.url}
+                          alt=""
+                          className="w-3 h-3 object-contain"
+                        />
+                        {r.polaridade === "apara" ? "Apará" : "Doutrinador(a)"}
                       </span>
                     )}
-                    <span className="text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-                      {r.situacao}
+                    <span
+                      className={
+                        "text-[10px] uppercase tracking-wide px-1.5 py-0.5 rounded " +
+                        situacaoBadgeClass(r.situacao)
+                      }
+                    >
+                      {SITUACAO_LABEL[r.situacao] ?? r.situacao}
                     </span>
                   </div>
+
                 </div>
               </CardContent>
             </Card>

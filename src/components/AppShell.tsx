@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Search, Settings, ShieldCheck, LogOut, ChevronRight, Mail, Menu } from "lucide-react";
+import { LayoutDashboard, Users, Search, Settings, ShieldCheck, LogOut, Mail, Menu } from "lucide-react";
 import { db as supabase } from "@/lib/db";
 import { useSession, type Role } from "@/lib/session";
 import { cn } from "@/lib/utils";
@@ -106,7 +106,6 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
               )}
             </div>
-            <ChevronRight className="w-4 h-4 text-sidebar-foreground/60 shrink-0" />
           </div>
         </div>
       )}
@@ -183,12 +182,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Mail className="w-4 h-4 text-sidebar-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-sm truncate">{s.profile?.email}</div>
+            <div className="text-[11px] leading-tight break-all">{s.profile?.email}</div>
             <div className="text-xs text-sidebar-foreground/60">
               {roleLabel || "Usuário"}
             </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-sidebar-foreground/60 shrink-0" />
+
         </div>
         <button
           type="button"
