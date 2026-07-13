@@ -74,17 +74,6 @@ function OnboardingPage() {
       const { createTemploRequest } = await import("@/lib/templo-admin.functions");
       await createTemploRequest({ data: { nome, cidade, estado } });
       await s.refresh();
-      const { data: p } = await supabase
-        .from("profiles")
-        .select("templo_id")
-        .eq("id", s.userId!)
-        .maybeSingle();
-      if (!(p as { templo_id: string | null } | null)?.templo_id) {
-        toast.error(
-          "Templo criado, mas não foi possível vincular seu usuário. Faça login novamente.",
-        );
-        return;
-      }
       toast.success("Templo enviado para aprovação.");
     } catch (err) {
       toast.error((err as Error).message);
