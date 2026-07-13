@@ -24,6 +24,12 @@ import { toast } from "sonner";
 import { Building2, Users, Clock, CheckCircle2, XCircle, Pencil, Search, Trash2 } from "lucide-react";
 import { LogoUploader } from "@/components/LogoUploader";
 import { CustomFieldsManager } from "@/components/CustomFieldsManager";
+import {
+  approveTemplo,
+  rejectTemplo,
+  deleteTemplo,
+  updateTemplo,
+} from "@/lib/templo-admin.functions";
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -88,26 +94,35 @@ function AdminPage() {
   }
 
   const approve = async (id: string) => {
-    const { error } = await db.rpc("approve_templo", { _templo_id: id });
-    if (error) return toast.error(error.message);
-    toast.success("Templo aprovado.");
-    load();
+    try {
+      await approveTemplo({ data: { templo_id: id } });
+      toast.success("Templo aprovado.");
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
   const reject = async (id: string) => {
-    const { error } = await db.rpc("reject_templo", { _templo_id: id });
-    if (error) return toast.error(error.message);
-    toast.success("Templo suspenso.");
-    load();
+    try {
+      await rejectTemplo({ data: { templo_id: id } });
+      toast.success("Templo suspenso.");
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
   const removeTemplo = async (t: Templo) => {
     const ok = window.confirm(
       `Excluir definitivamente o templo "${t.nome}"?\n\nTodos os médiuns, anexos, campos e histórico deste templo serão apagados. Esta ação não pode ser desfeita.`,
     );
     if (!ok) return;
-    const { error } = await db.rpc("delete_templo", { _templo_id: t.id });
-    if (error) return toast.error(error.message);
-    toast.success("Templo excluído.");
-    load();
+    try {
+      await deleteTemplo({ data: { templo_id: t.id } });
+      toast.success("Templo excluído.");
+      load();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
 
   const filtered = templos.filter((t) => {
@@ -381,18 +396,24 @@ function EditTemploDialog({
   const save = async () => {
     if (!templo) return;
     setBusy(true);
-    const { error } = await db.rpc("update_templo", {
-      _templo_id: templo.id,
-      _nome: form.nome,
-      _cidade: form.cidade || null,
-      _estado: form.estado || null,
-      _status: form.status,
-    });
-    setBusy(false);
-    if (error) return toast.error(error.message);
-    toast.success("Templo atualizado.");
-    onSaved();
-    onClose();
+    try {
+      await updateTemplo({
+        data: {
+          templo_id: templo.id,
+          nome: form.nome,
+          cidade: form.cidade || null,
+          estado: form.estado || null,
+          status: form.status,
+        },
+      });
+      toast.success("Templo atualizado.");
+      onSaved();
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
