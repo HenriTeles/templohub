@@ -30,18 +30,24 @@ export const getCurrentSessionData = createServerFn({ method: "GET" })
       .maybeSingle();
     if (profileError) throw new Error(profileError.message);
 
+    let restoredFromOldProfile = false;
+
     // Migração externa pode recriar usuários do Auth com UUID novo, mantendo
-    // profiles/user_roles com o UUID antigo. Reconciliamos pelo e-mail autenticado.
-    if (!profile && email) {
+    // profiles/user_roles com o UUID antigo. Reconciliamos pelo e-mail autenticado,
+    // inclusive quando o trigger já criou um perfil vazio no UUID novo.
+    if (email) {
       const { data: sameEmailProfiles, error: emailProfileError } = await supabaseAdmin
         .from("profiles")
         .select("id, templo_id, nome, email")
         .ilike("email", email)
-        .limit(2);
+        .limit(10);
       if (emailProfileError) throw new Error(emailProfileError.message);
 
-      if (sameEmailProfiles?.length === 1) {
-        const oldProfile = sameEmailProfiles[0] as ProfileRow;
+      const oldProfile = ((sameEmailProfiles ?? []) as ProfileRow[])
+        .filter((row) => row.id !== userId)
+        .sort((a, b) => Number(Boolean(b.templo_id)) - Number(Boolean(a.templo_id)))[0];
+
+      if (oldProfile && (!profile || !profile.templo_id)) {
         if (oldProfile.id !== userId) {
           const { data: oldRoles, error: oldRolesError } = await supabaseAdmin
             .from("user_roles")
@@ -81,7 +87,9 @@ export const getCurrentSessionData = createServerFn({ method: "GET" })
               templo_id: oldProfile.templo_id,
             });
             if (upsertProfileError) throw new Error(upsertProfileError.message);
+            await supabaseAdmin.from("profiles").delete().eq("id", oldProfile.id);
           }
+          restoredFromOldProfile = true;
         }
       }
     }
@@ -93,7 +101,7 @@ export const getCurrentSessionData = createServerFn({ method: "GET" })
       .maybeSingle());
     if (profileError) throw new Error(profileError.message);
 
-    if (!profile) {
+    if (!profile && !restoredFromOldProfile) {
       const { error: createProfileError } = await supabaseAdmin.from("profiles").upsert({
         id: userId,
         email,
