@@ -54,7 +54,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setProfile(null);
       setTemplo(null);
       setRoles([]);
-      setAccountError("Não foi possível carregar os dados da sua conta. Tente novamente.");
+      setAccountError(err instanceof Error ? err.message : String(err));
     }
   };
 
