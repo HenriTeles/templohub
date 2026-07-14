@@ -29,9 +29,24 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+function resolveSupabaseSecretKey(): string | undefined {
+  // Novo formato preferencial: SUPABASE_SECRET_KEYS é um JSON, ex: {"default":"sb_secret_..."}
+  const secretKeysRaw = process.env.SUPABASE_SECRET_KEYS;
+  if (secretKeysRaw) {
+    try {
+      const parsed = JSON.parse(secretKeysRaw) as Record<string, string>;
+      if (parsed.default) return parsed.default;
+    } catch {
+      console.error('[Supabase] SUPABASE_SECRET_KEYS presente mas inválido, caindo para legado.');
+    }
+  }
+  // Fallback: formato legado (chave única em texto puro)
+  return process.env.SUPABASE_SERVICE_ROLE_KEY;
+}
+
 function createSupabaseAdminClient() {
   const SUPABASE_URL = process.env.SUPABASE_URL;
-  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const SUPABASE_SERVICE_ROLE_KEY = resolveSupabaseSecretKey();
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     const missing = [
