@@ -23,7 +23,7 @@ export const getCurrentSessionData = createServerFn({ method: "GET" })
     const email = typeof context.claims?.email === "string" ? context.claims.email : null;
     const fallbackName = email?.split("@")[0] || "usuario";
 
-    const runWithAdmin = async <T,>(operation: (client: typeof supabase) => Promise<T>) => {
+    const runWithAdmin = async (operation: (client: any) => Promise<any> | any): Promise<any | null> => {
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         return await operation(supabaseAdmin as unknown as typeof supabase);
