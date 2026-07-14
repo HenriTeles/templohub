@@ -5,6 +5,21 @@ import { getCurrentSessionData } from "@/lib/session.functions";
 
 export type Role = "super_admin" | "admin" | "secretario" | "consulta";
 
+type ProfileRow = SessionState["profile"];
+type TemploRow = SessionState["templo"];
+type RoleRow = { role: Role; templo_id: string | null };
+
+function fallbackProfileFromSession(currentSession: Session): NonNullable<ProfileRow> {
+  const email = currentSession.user.email ?? null;
+  const metadataName = currentSession.user.user_metadata?.nome;
+  return {
+    id: currentSession.user.id,
+    templo_id: null,
+    nome: typeof metadataName === "string" && metadataName.trim() ? metadataName : email?.split("@")[0] ?? "usuario",
+    email,
+  };
+}
+
 export type SessionState = {
   loading: boolean;
   session: Session | null;
@@ -26,6 +41,70 @@ export type SessionState = {
 
 const SessionCtx = createContext<SessionState | null>(null);
 
+async function loadSessionDataFromSupabase(currentSession: Session): Promise<{
+  profile: ProfileRow;
+  templo: TemploRow;
+  roles: Role[];
+}> {
+  const userId = currentSession.user.id;
+  const fallbackProfile = fallbackProfileFromSession(currentSession);
+
+  const { data: profileData, error: profileError } = await supabase
+    .from("profiles")
+    .select("id, templo_id, nome, email")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError) throw new Error(profileError.message);
+
+  const { data: roleRowsData, error: rolesError } = await supabase
+    .from("user_roles")
+    .select("role, templo_id")
+    .eq("user_id", userId);
+  if (rolesError) throw new Error(rolesError.message);
+
+  const roleRows = (roleRowsData ?? []) as RoleRow[];
+  const roles = Array.from(new Set(roleRows.map((row) => row.role)));
+  const isSuperAdmin = roles.includes("super_admin");
+  const roleTemploId = roleRows.find((row) => row.templo_id)?.templo_id ?? null;
+
+  let profile = (profileData as ProfileRow) ?? null;
+
+  if (!profile) {
+    if (roleRows.length > 0) {
+      throw new Error(
+        "Perfil da conta não encontrado no Supabase externo. A conta tem permissões, mas a tabela profiles não foi reconciliada.",
+      );
+    }
+    return { profile: fallbackProfile, roles, templo: null };
+  }
+
+  if (!profile.templo_id && roleTemploId && !isSuperAdmin) {
+    const { error: syncProfileError } = await supabase
+      .from("profiles")
+      .update({ templo_id: roleTemploId })
+      .eq("id", userId);
+    if (syncProfileError) throw new Error(syncProfileError.message);
+    profile = { ...profile, templo_id: roleTemploId };
+  }
+
+  const temploId = profile.templo_id ?? roleTemploId;
+  let templo: TemploRow = null;
+  if (temploId && !isSuperAdmin) {
+    const { data: temploData, error: temploError } = await supabase
+      .from("templos")
+      .select("id, nome, status, logo_path, theme_primary, theme_accent, theme_sidebar")
+      .eq("id", temploId)
+      .maybeSingle();
+    if (temploError) throw new Error(temploError.message);
+    if (!temploData) {
+      throw new Error("Templo vinculado não encontrado ou sem permissão de leitura no Supabase externo.");
+    }
+    templo = temploData as TemploRow;
+  }
+
+  return { profile, roles, templo };
+}
+
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,17 +123,27 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       return;
     }
     try {
-      const data = await getCurrentSessionData();
+      const data = await loadSessionDataFromSupabase(currentSession);
       setProfile(data.profile as SessionState["profile"]);
       setRoles((data.roles ?? []) as Role[]);
       setTemplo(data.templo as SessionState["templo"]);
       setAccountError(null);
-    } catch (err) {
-      console.error("Erro ao carregar dados da conta", err);
-      setProfile(null);
-      setTemplo(null);
-      setRoles([]);
-      setAccountError(err instanceof Error ? err.message : String(err));
+    } catch (clientErr) {
+      try {
+        const data = await getCurrentSessionData();
+        setProfile(data.profile as SessionState["profile"]);
+        setRoles((data.roles ?? []) as Role[]);
+        setTemplo(data.templo as SessionState["templo"]);
+        setAccountError(null);
+      } catch (serverErr) {
+        console.error("Erro ao carregar dados da conta", { clientErr, serverErr });
+        setProfile(null);
+        setTemplo(null);
+        setRoles([]);
+        const clientMessage = clientErr instanceof Error ? clientErr.message : String(clientErr);
+        const serverMessage = serverErr instanceof Error ? serverErr.message : String(serverErr);
+        setAccountError(clientMessage || serverMessage);
+      }
     }
   };
 
