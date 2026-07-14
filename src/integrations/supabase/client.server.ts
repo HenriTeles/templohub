@@ -29,19 +29,45 @@ function createSupabaseFetch(supabaseKey: string): typeof fetch {
   };
 }
 
+function looksLikeSecretKey(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  return trimmed.startsWith('sb_secret_') || trimmed.split('.').length === 3;
+}
+
 function resolveSupabaseSecretKey(): string | undefined {
-  // Novo formato preferencial: SUPABASE_SECRET_KEYS é um JSON, ex: {"default":"sb_secret_..."}
+  // 1) Formato legado (texto puro em uma env dedicada)
+  const legacy = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (looksLikeSecretKey(legacy)) return legacy!.trim();
+
+  // 2) Novo formato: SUPABASE_SECRET_KEYS pode ser JSON ou string simples
   const secretKeysRaw = process.env.SUPABASE_SECRET_KEYS;
-  if (secretKeysRaw) {
+  if (secretKeysRaw && secretKeysRaw.trim()) {
+    const raw = secretKeysRaw.trim();
+    // 2a) String simples (não JSON)
+    if (looksLikeSecretKey(raw)) return raw;
+
+    // 2b) JSON — tentar chave "default", depois project ref, depois primeiro valor válido
     try {
-      const parsed = JSON.parse(secretKeysRaw) as Record<string, string>;
-      if (parsed.default) return parsed.default;
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      if (looksLikeSecretKey(parsed.default)) return (parsed.default as string).trim();
+
+      const projectRef =
+        process.env.SUPABASE_PROJECT_ID || process.env.VITE_SUPABASE_PROJECT_ID;
+      if (projectRef && looksLikeSecretKey(parsed[projectRef])) {
+        return (parsed[projectRef] as string).trim();
+      }
+
+      for (const value of Object.values(parsed)) {
+        if (looksLikeSecretKey(value)) return (value as string).trim();
+      }
     } catch {
-      console.error('[Supabase] SUPABASE_SECRET_KEYS presente mas inválido, caindo para legado.');
+      console.error('[Supabase] SUPABASE_SECRET_KEYS presente mas inválido.');
     }
   }
-  // Fallback: formato legado (chave única em texto puro)
-  return process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  return undefined;
 }
 
 function createSupabaseAdminClient() {
