@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { db as supabase } from "@/lib/db";
-import { useSession } from "@/lib/session";
+import { getSessionRouteDecision, useSession } from "@/lib/session";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,19 +17,46 @@ function OnboardingPage() {
   const [cidade, setCidade] = useState("");
   const [estado, setEstado] = useState("");
   const [busy, setBusy] = useState(false);
+  const decision = getSessionRouteDecision(s);
 
-  if (s.loading) {
+  if (decision.state === "loading") {
     return <div className="min-h-screen flex items-center justify-center">Carregando…</div>;
   }
 
-  if (!s.session) {
+  if (decision.state === "signed_out") {
     nav({ to: "/login" });
     return null;
   }
 
-  if (s.roles.includes("super_admin")) {
+  if (decision.state === "admin") {
     nav({ to: "/app/admin" });
     return null;
+  }
+
+  if (decision.state === "templo_active") {
+    nav({ to: "/app/dashboard" });
+    return null;
+  }
+
+  if (decision.state === "account_error") {
+    return (
+      <div className="min-h-screen bg-background p-6 flex items-center justify-center text-center">
+        <Card className="max-w-lg w-full">
+          <CardHeader>
+            <CardTitle>Conta não carregada</CardTitle>
+            <CardDescription>{s.accountError ?? "Não foi possível carregar o vínculo do templo desta conta."}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button className="w-full" onClick={() => s.refresh()}>
+              Tentar novamente
+            </Button>
+            <Button variant="outline" className="w-full" onClick={() => supabase.auth.signOut()}>
+              Sair
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (s.templo) {

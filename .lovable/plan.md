@@ -1,43 +1,40 @@
-## Diagnóstico
+## Objetivo
+Garantir que, após login com credenciais corretas, cada usuário seja enviado sempre para a página correta:
+- Administrador Geral → `/app/admin`
+- Conta de templo ativa → `/app/dashboard`
+- Conta de templo pendente/suspensa → tela de status do templo
+- Somente conta realmente sem templo/permissão → cadastro de templo
 
-A tela "Conta não carregada" mostra:
-> Missing Supabase environment variable(s): SUPABASE_SERVICE_ROLE_KEY
-
-Isso vem de `src/integrations/supabase/client.server.ts → resolveSupabaseSecretKey()`, chamado pela server function `getCurrentSessionData` (via `supabaseAdmin`).
-
-Os secrets do projeto (Supabase externo `vuqogpswsdzlxuaeidcw`) contêm:
-- `SUPABASE_SECRET_KEYS` ✅
-- `SUPABASE_SERVICE_ROLE_KEY` ✅ (listado, mas aparentemente vazio/indisponível no runtime do Worker — a mensagem de erro confirma que `process.env.SUPABASE_SERVICE_ROLE_KEY` retorna `undefined`)
-- `SUPABASE_PUBLISHABLE_KEYS` ✅ (novo formato)
-
-O código atual de `resolveSupabaseSecretKey()` tenta:
-1. `SUPABASE_SECRET_KEYS` como JSON com chave `default`
-2. Fallback: `SUPABASE_SERVICE_ROLE_KEY`
-
-O formato real de `SUPABASE_SECRET_KEYS` injetado pelo Lovable NÃO usa a chave `"default"` — é um objeto indexado por project ref, algo como `{"vuqogpswsdzlxuaeidcw":"sb_secret_..."}`. Por isso `parsed.default` é `undefined`, e o fallback também falha porque `SUPABASE_SERVICE_ROLE_KEY` não está populada no runtime (só o novo formato foi injetado).
-
-Nada disso tem a ver com "Lovable Cloud" — o projeto já está 100% no Supabase externo. O problema é puramente a leitura da chave secreta no lado do servidor.
+## Causa identificada
+O login em si está funcionando. O erro vem do banco: a chamada a `profiles` está retornando `500 stack depth limit exceeded`, causado por recursão nas políticas RLS/funções auxiliares (`profiles_select`, `user_roles_select`, `is_super_admin`, `user_templo`, `has_role`). Quando essa leitura falha, o app fica sem `profile/templo` e interpreta a conta existente como se fosse uma conta nova, exibindo “Cadastro do Templo”.
 
 ## Plano de correção
+1. **Corrigir a recursão RLS no Supabase externo**
+   - Criar um script SQL de reparo para as funções `is_super_admin`, `has_role`, `user_templo` e `can_write_templo` usando `SECURITY DEFINER` com `search_path` fixo, para que elas possam consultar `profiles/user_roles` sem disparar novamente as próprias políticas RLS.
+   - Manter `EXECUTE` restrito apenas aos papéis necessários (`authenticated` e `service_role`) nessas funções usadas pelas políticas.
+   - Ajustar as políticas de `profiles` e `user_roles` para não entrarem em ciclo entre si.
 
-**1. Robustecer `resolveSupabaseSecretKey()` em `src/integrations/supabase/client.server.ts`**
+2. **Blindar o carregamento de sessão no frontend**
+   - Transformar o estado de sessão em uma decisão explícita: `signed_out`, `loading`, `ready`, `needs_onboarding`, `templo_pending/suspended`, `account_error`.
+   - Nunca redirecionar para `/onboarding` quando uma consulta de conta falhar; falha de leitura deve mostrar erro/retry, não cadastro.
+   - Só permitir `/onboarding` quando a sessão carregou com sucesso e não existe `profile.templo_id`, nem `user_roles.templo_id`, nem papel de Administrador Geral.
 
-Ordem de tentativa:
-1. `SUPABASE_SERVICE_ROLE_KEY` (legado, texto puro) — se existir e não vazio.
-2. `SUPABASE_SECRET_KEYS` como JSON:
-   - se tiver `default`, usar.
-   - senão, se tiver a chave `process.env.SUPABASE_PROJECT_ID` (ou `VITE_SUPABASE_PROJECT_ID`), usar.
-   - senão, pegar o **primeiro valor** do objeto que comece com `sb_secret_` ou pareça um JWT.
-3. Se `SUPABASE_SECRET_KEYS` for uma string simples (não JSON), usar direto.
+3. **Centralizar redirecionamentos**
+   - Criar uma função única de destino pós-login baseada em sessão/roles/templo.
+   - Usar essa função em `/`, `/login`, `/onboarding` e `AppShell`, evitando regras duplicadas que possam divergir em melhorias futuras.
+   - Depois de `signInWithPassword`, aguardar `refresh()`/carregamento da sessão antes de navegar, em vez de mandar cegamente para `/`.
 
-Mensagem de erro mais clara quando nada for encontrado, listando quais envs foram tentadas (sem vazar valores).
+4. **Proteger rotas do app**
+   - Em `/app`, bloquear renderização até `SessionProvider` terminar de carregar.
+   - Redirecionar usuário deslogado para `/login`.
+   - Redirecionar usuário sem autorização real para a tela correta sem cair em cadastro por erro temporário.
 
-**2. Verificação**
+5. **Adicionar documentação de estabilidade**
+   - Registrar no código, próximo à função central de redirecionamento, a regra: “não enviar conta existente para onboarding em caso de erro de leitura”.
+   - Assim futuras alterações de UI/funcionalidade não mexem novamente no comportamento crítico de autenticação.
 
-Após o deploy da correção, recarregar `/` autenticado. A tela "Conta não carregada" deve desaparecer e o dashboard deve renderizar. Se ainda falhar, os logs da server function mostrarão exatamente qual env está ausente.
-
-## Fora de escopo
-
-- Nenhuma alteração de schema, RLS, ou rotas.
-- Nenhuma mudança no cliente browser (`client.ts`), que já está correto após o fix de SSR.
-- Não há nenhuma conexão remanescente com "Lovable Cloud" — o `.env` e todos os clients apontam para `vuqogpswsdzlxuaeidcw.supabase.co`.
+## Validação
+- Verificar no preview que a requisição a `profiles` não retorna mais `stack depth limit exceeded`.
+- Testar login e refresh em `/`, `/login`, `/app/dashboard` e `/app/admin`.
+- Confirmar que uma conta existente não vê mais “Cadastro do Templo” quando já possui vínculo ou papel.
+- Confirmar que apenas conta nova, sem templo e sem role, continua indo para cadastro.
