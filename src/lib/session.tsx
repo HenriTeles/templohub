@@ -146,6 +146,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [roles, setRoles] = useState<Role[]>([]);
   const [accountError, setAccountError] = useState<string | null>(null);
   const lastUid = useRef<string | null>(null);
+  const loadSeq = useRef(0);
 
   const load = async (currentSession: Session | null | undefined): Promise<SessionSnapshot | null> => {
     if (!currentSession?.user.id) {
@@ -187,12 +188,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     let mounted = true;
     supabase.auth.getSession().then(async ({ data }: { data: { session: Session | null } }) => {
       if (!mounted) return;
+      const seq = ++loadSeq.current;
       setSession(data.session);
       lastUid.current = data.session?.user.id ?? null;
       await load(data.session);
+      if (!mounted || seq !== loadSeq.current) return;
       setLoading(false);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange(async (event: string, s: Session | null) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event: string, s: Session | null) => {
       // Only react to identity transitions; ignore INITIAL_SESSION and TOKEN_REFRESHED
       if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       const uid = s?.user.id ?? null;
@@ -201,9 +204,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       // don't observe { session: signed-in, profile: null } and mistake it for
       // "no templo" → redirect to /onboarding.
       setLoading(true);
-      await load(s);
-      setSession(s);
-      setLoading(false);
+      const seq = ++loadSeq.current;
+      void (async () => {
+        await load(s);
+        if (!mounted || seq !== loadSeq.current) return;
+        setSession(s);
+        setLoading(false);
+      })();
     });
     return () => {
       mounted = false;
