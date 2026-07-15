@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useBrandingLogo } from "@/lib/branding";
+import { getSessionRouteDecision, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
 
@@ -18,6 +19,7 @@ function LoginPage() {
   const [nome, setNome] = useState("");
   const [busy, setBusy] = useState(false);
   const logoUrl = useBrandingLogo();
+  const sessionState = useSession();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,7 +28,17 @@ function LoginPage() {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        nav({ to: "/" });
+        const { data } = await supabase.auth.getSession();
+        const snapshot = await sessionState.refresh(data.session);
+        const decision = getSessionRouteDecision({
+          loading: false,
+          session: data.session,
+          profile: snapshot?.profile ?? null,
+          templo: snapshot?.templo ?? null,
+          roles: snapshot?.roles ?? [],
+          accountError: snapshot ? null : "Conta não carregada",
+        });
+        nav({ to: "to" in decision ? decision.to : "/" });
       } else if (mode === "signup") {
         const redirectTo = `${window.location.origin}/`;
         const { error } = await supabase.auth.signUp({

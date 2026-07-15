@@ -1,7 +1,7 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Users, Search, Settings, ShieldCheck, LogOut, Mail, Menu } from "lucide-react";
 import { db as supabase } from "@/lib/db";
-import { useSession, type Role } from "@/lib/session";
+import { getSessionRouteDecision, useSession, type Role } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState, type ReactNode } from "react";
@@ -49,19 +49,20 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const brandingLogo = useBrandingLogo();
   const temploLogo = useTemploLogo(s.templo?.logo_path);
+  const decision = getSessionRouteDecision(s);
 
-  if (s.loading) {
+  if (decision.state === "loading") {
     return <div className="min-h-screen flex items-center justify-center bg-background">Carregando…</div>;
   }
 
-  if (!s.session) {
+  if (decision.state === "signed_out") {
     nav({ to: "/login" });
     return null;
   }
 
   const isSuper = s.roles.includes("super_admin");
 
-  if (!isSuper && (!s.templo || s.templo.status !== "ativo")) {
+  if (decision.state === "account_error" || decision.state === "templo_status" || decision.state === "needs_onboarding") {
     nav({ to: "/onboarding" });
     return null;
   }

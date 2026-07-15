@@ -36,8 +36,41 @@ export type SessionState = {
   } | null;
   roles: Role[];
   accountError: string | null;
-  refresh: () => Promise<void>;
+  refresh: (nextSession?: Session | null) => Promise<SessionSnapshot | null>;
 };
+
+export type SessionSnapshot = {
+  profile: SessionState["profile"];
+  templo: SessionState["templo"];
+  roles: Role[];
+};
+
+export type SessionRouteDecision =
+  | { state: "loading" }
+  | { state: "signed_out"; to: "/login" }
+  | { state: "account_error" }
+  | { state: "admin"; to: "/app/admin" }
+  | { state: "templo_active"; to: "/app/dashboard" }
+  | { state: "templo_status"; to: "/onboarding" }
+  | { state: "needs_onboarding"; to: "/onboarding" };
+
+export function getSessionRouteDecision(
+  state: Pick<SessionState, "loading" | "session" | "profile" | "templo" | "roles" | "accountError">,
+): SessionRouteDecision {
+  if (state.loading) return { state: "loading" };
+  if (!state.session) return { state: "signed_out", to: "/login" };
+  if (state.accountError) return { state: "account_error" };
+  if (state.roles.includes("super_admin")) return { state: "admin", to: "/app/admin" };
+  if (state.templo?.status === "ativo") return { state: "templo_active", to: "/app/dashboard" };
+  if (state.templo) return { state: "templo_status", to: "/onboarding" };
+
+  // Regra crítica de estabilidade: uma conta existente com templo_id nunca deve
+  // ser enviada para cadastro por falha/atraso na leitura do templo. Onboarding
+  // é permitido somente quando a sessão carregou sem erro e não existe vínculo.
+  if (state.profile?.templo_id) return { state: "account_error" };
+
+  return { state: "needs_onboarding", to: "/onboarding" };
+}
 
 const SessionCtx = createContext<SessionState | null>(null);
 
@@ -114,13 +147,13 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [accountError, setAccountError] = useState<string | null>(null);
   const lastUid = useRef<string | null>(null);
 
-  const load = async (currentSession: Session | null | undefined) => {
+  const load = async (currentSession: Session | null | undefined): Promise<SessionSnapshot | null> => {
     if (!currentSession?.user.id) {
       setProfile(null);
       setTemplo(null);
       setRoles([]);
       setAccountError(null);
-      return;
+      return null;
     }
     try {
       const data = await loadSessionDataFromSupabase(currentSession);
@@ -128,6 +161,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       setRoles((data.roles ?? []) as Role[]);
       setTemplo(data.templo as SessionState["templo"]);
       setAccountError(null);
+      return data as SessionSnapshot;
     } catch (clientErr) {
       try {
         const data = await getCurrentSessionData();
@@ -135,6 +169,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         setRoles((data.roles ?? []) as Role[]);
         setTemplo(data.templo as SessionState["templo"]);
         setAccountError(null);
+        return data as SessionSnapshot;
       } catch (serverErr) {
         console.error("Erro ao carregar dados da conta", { clientErr, serverErr });
         setProfile(null);
@@ -143,6 +178,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         const clientMessage = clientErr instanceof Error ? clientErr.message : String(clientErr);
         const serverMessage = serverErr instanceof Error ? serverErr.message : String(serverErr);
         setAccountError(clientMessage || serverMessage);
+        return null;
       }
     }
   };
@@ -185,7 +221,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       templo,
       roles,
       accountError,
-      refresh: () => load(session),
+      refresh: (nextSession?: Session | null) => load(nextSession === undefined ? session : nextSession),
     }),
     [loading, session, profile, templo, roles, accountError],
   );

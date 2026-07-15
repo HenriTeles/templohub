@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { useSession } from "@/lib/session";
+import { getSessionRouteDecision, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/")({
   component: Gateway,
@@ -9,15 +9,11 @@ export const Route = createFileRoute("/")({
 function Gateway() {
   const nav = useNavigate();
   const s = useSession();
+  const decision = getSessionRouteDecision(s);
   useEffect(() => {
-    if (s.loading) return;
-    if (!s.session) nav({ to: "/login" });
-    else if (s.accountError) return;
-    else if (s.roles.includes("super_admin")) nav({ to: "/app/admin" });
-    else if (!s.profile?.templo_id) nav({ to: "/onboarding" });
-    else nav({ to: "/app/dashboard" });
-  }, [s.loading, s.session, s.profile, s.roles, s.accountError, nav]);
-  if (s.accountError) {
+    if ("to" in decision) nav({ to: decision.to });
+  }, [decision, nav]);
+  if (decision.state === "account_error") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center text-foreground">
         <div className="max-w-sm space-y-3">
