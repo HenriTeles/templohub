@@ -241,7 +241,7 @@ export function useSession(): SessionState {
       templo: null,
       roles: [],
       accountError: null,
-      refresh: async () => {},
+      refresh: async () => null,
     };
   }
   return ctx;
