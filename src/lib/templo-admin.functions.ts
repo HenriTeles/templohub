@@ -90,53 +90,14 @@ export const createTemploRequest = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // create_templo_request usa auth.uid() internamente. Como o admin client não
-    // possui contexto de usuário, replicamos a lógica aqui usando context.userId.
-    const uid = context.userId;
-
-    // Bloqueia super admins
-    const { data: sa } = await supabaseAdmin
-      .from("user_roles")
-      .select("id")
-      .eq("user_id", uid)
-      .eq("role", "super_admin")
-      .limit(1);
-    if (sa && sa.length > 0) throw new Error("super admins do not belong to a templo");
-
-    // Garante perfil
-    const email = context.claims?.email as string | undefined;
-    await supabaseAdmin
-      .from("profiles")
-      .upsert(
-        { id: uid, email: email ?? null, nome: (email ?? "").split("@")[0] || "usuario" },
-        { onConflict: "id", ignoreDuplicates: true },
-      );
-
-    const { data: prof } = await supabaseAdmin
-      .from("profiles")
-      .select("templo_id")
-      .eq("id", uid)
-      .maybeSingle();
-    if (prof?.templo_id) throw new Error("user already belongs to a templo");
-
-    const { data: templo, error: tErr } = await supabaseAdmin
-      .from("templos")
-      .insert({
-        nome: data.nome,
-        cidade: data.cidade,
-        estado: data.estado,
-        status: "pendente",
-        created_by: uid,
-      })
-      .select("id")
-      .single();
-    if (tErr) throw new Error(tErr.message);
-
-    await supabaseAdmin.from("profiles").update({ templo_id: templo.id }).eq("id", uid);
-    await supabaseAdmin
-      .from("user_roles")
-      .upsert({ user_id: uid, role: "admin", templo_id: templo.id }, { ignoreDuplicates: true });
-
-    return { templo_id: templo.id };
+    // Usa o client autenticado do usuário; a RPC create_templo_request é
+    // SECURITY DEFINER e cuida de perfil, templo e user_roles via auth.uid().
+    const { data: templo_id, error } = await context.supabase.rpc("create_templo_request", {
+      _nome: data.nome,
+      _cidade: data.cidade,
+      _estado: data.estado,
+    });
+    if (error) throw new Error(error.message);
+    return { templo_id: templo_id as string };
   });
+
