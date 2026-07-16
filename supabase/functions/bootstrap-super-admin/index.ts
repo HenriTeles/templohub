@@ -1,9 +1,35 @@
-// Promotes an email to super_admin ONLY when no super_admin exists yet.
-// Safe to expose without auth: it becomes a no-op after the first bootstrap.
+// Promotes an email to super_admin ONLY when:
+//  1) no super_admin exists yet, AND
+//  2) the caller presents the correct BOOTSTRAP_SETUP_TOKEN shared secret.
+// The token must be configured as a Supabase secret before first use.
+// After the first super_admin is created, the function becomes a no-op.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
+function timingSafeEqual(a: string, b: string): boolean {
+  const enc = new TextEncoder();
+  const ab = enc.encode(a);
+  const bb = enc.encode(b);
+  if (ab.length !== bb.length) return false;
+  let diff = 0;
+  for (let i = 0; i < ab.length; i++) diff |= ab[i] ^ bb[i];
+  return diff === 0;
+}
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") return new Response("method not allowed", { status: 405 });
+
+  const setupToken = Deno.env.get("BOOTSTRAP_SETUP_TOKEN");
+  if (!setupToken) {
+    return json({ ok: false, error: "bootstrap disabled: BOOTSTRAP_SETUP_TOKEN not configured" }, 503);
+  }
+
+  const provided =
+    req.headers.get("x-setup-token") ??
+    (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!provided || !timingSafeEqual(provided, setupToken)) {
+    return json({ ok: false, error: "unauthorized" }, 401);
+  }
+
   let email: string;
   try {
     const body = await req.json();
