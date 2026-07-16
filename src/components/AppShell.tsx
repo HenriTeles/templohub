@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useEffect, useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useBrandingLogo } from "@/lib/branding";
+import { AccountLoadError } from "@/components/AccountLoadError";
 
 const NAV = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -62,7 +63,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const isSuper = s.roles.includes("super_admin");
 
-  if (decision.state === "account_error" || decision.state === "templo_status" || decision.state === "needs_onboarding") {
+  if (decision.state === "account_error") {
+    return <AccountLoadError error={s.accountError} onRetry={() => s.refresh()} onSignOut={() => supabase.auth.signOut()} />;
+  }
+
+  if (decision.state === "templo_status" || decision.state === "needs_onboarding") {
     nav({ to: "/onboarding" });
     return null;
   }

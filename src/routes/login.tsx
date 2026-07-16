@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { AccountLoadError } from "@/components/AccountLoadError";
 import { useBrandingLogo } from "@/lib/branding";
 import { getSessionRouteDecision, useSession } from "@/lib/session";
 
@@ -20,6 +21,19 @@ function LoginPage() {
   const [busy, setBusy] = useState(false);
   const logoUrl = useBrandingLogo();
   const sessionState = useSession();
+
+  if (!sessionState.loading && sessionState.session && sessionState.accountError) {
+    return (
+      <AccountLoadError
+        error={sessionState.accountError}
+        onRetry={() => sessionState.refresh()}
+        onSignOut={async () => {
+          await supabase.auth.signOut();
+          nav({ to: "/login" });
+        }}
+      />
+    );
+  }
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,7 +50,13 @@ function LoginPage() {
           profile: snapshot?.profile ?? null,
           templo: snapshot?.templo ?? null,
           roles: snapshot?.roles ?? [],
-          accountError: snapshot ? null : "Conta não carregada",
+          accountError: snapshot
+            ? null
+            : {
+                message: "O login foi aceito, mas os dados da conta não foram retornados.",
+                origin: "Sessão autenticada sem perfil/papel/templo",
+                detail: "sessionState.refresh() não retornou dados suficientes para decidir a rota correta.",
+              },
         });
         nav({ to: "to" in decision ? decision.to : "/" });
       } else if (mode === "signup") {

@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { db as supabase } from "@/lib/db";
 import { getSessionRouteDecision, useSession } from "@/lib/session";
+import { AccountLoadError } from "@/components/AccountLoadError";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,24 +40,7 @@ function OnboardingPage() {
   }
 
   if (decision.state === "account_error") {
-    return (
-      <div className="min-h-screen bg-background p-6 flex items-center justify-center text-center">
-        <Card className="max-w-lg w-full">
-          <CardHeader>
-            <CardTitle>Conta não carregada</CardTitle>
-            <CardDescription>{s.accountError ?? "Não foi possível carregar o vínculo do templo desta conta."}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button className="w-full" onClick={() => s.refresh()}>
-              Tentar novamente
-            </Button>
-            <Button variant="outline" className="w-full" onClick={() => supabase.auth.signOut()}>
-              Sair
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <AccountLoadError error={s.accountError} onRetry={() => s.refresh()} onSignOut={() => supabase.auth.signOut()} />;
   }
 
   if (s.templo) {
