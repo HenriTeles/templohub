@@ -35,8 +35,17 @@ export type SessionState = {
     theme_sidebar?: string | null;
   } | null;
   roles: Role[];
-  accountError: string | null;
+  accountError: AccountErrorInfo | null;
   refresh: (nextSession?: Session | null) => Promise<SessionSnapshot | null>;
+};
+
+export type AccountErrorInfo = {
+  message: string;
+  origin: string;
+  detail: string;
+  clientDetail?: string;
+  serverDetail?: string;
+  action?: string;
 };
 
 export type SessionSnapshot = {
@@ -73,6 +82,76 @@ export function getSessionRouteDecision(
 }
 
 const SessionCtx = createContext<SessionState | null>(null);
+
+function getErrorMessage(error: unknown): string {
+  if (!error) return "";
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (typeof error === "object" && "message" in error && typeof (error as { message?: unknown }).message === "string") {
+    return (error as { message: string }).message;
+  }
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return String(error);
+  }
+}
+
+export function createAccountLoadError(clientErr: unknown, serverErr?: unknown): AccountErrorInfo {
+  const clientDetail = getErrorMessage(clientErr);
+  const serverDetail = getErrorMessage(serverErr);
+  const combined = [clientDetail, serverDetail].filter(Boolean).join(" | ");
+  const lower = combined.toLowerCase();
+
+  if (lower.includes("permission denied for function")) {
+    const match = combined.match(/permission denied for function\s+([a-zA-Z0-9_]+)/i);
+    const fn = match?.[1] ? ` ${match[1]}` : "";
+    return {
+      message: "O login foi aceito, mas o Supabase bloqueou a leitura dos dados da conta.",
+      origin: `Supabase/RLS: permissão de execução ausente na função${fn}`,
+      detail: combined,
+      clientDetail: clientDetail || undefined,
+      serverDetail: serverDetail || undefined,
+      action: "Execute o SQL de reparo de permissões no Supabase externo e tente novamente.",
+    };
+  }
+
+  if (lower.includes("missing supabase")) {
+    return {
+      message: "O login foi aceito, mas a configuração do Supabase no servidor está incompleta.",
+      origin: "Configuração de ambiente do Supabase",
+      detail: combined,
+      clientDetail: clientDetail || undefined,
+      serverDetail: serverDetail || undefined,
+      action: "Confira as variáveis SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY e, quando necessário, SUPABASE_SERVICE_ROLE_KEY.",
+    };
+  }
+
+  if (serverDetail.toLowerCase().includes("not found")) {
+    return {
+      message: "O login foi aceito, mas o fallback de sessão não foi encontrado no servidor.",
+      origin: "Server function de sessão",
+      detail: combined || "Server function retornou Not found.",
+      clientDetail: clientDetail || undefined,
+      serverDetail: serverDetail || undefined,
+      action: "Atualize a publicação/preview para garantir que as server functions estejam sincronizadas.",
+    };
+  }
+
+  return {
+    message: "O login foi aceito, mas não foi possível carregar perfil, papéis e templo.",
+    origin: "Carregamento da conta",
+    detail: combined || "Erro desconhecido ao carregar dados da sessão.",
+    clientDetail: clientDetail || undefined,
+    serverDetail: serverDetail || undefined,
+    action: "Tente novamente. Se persistir, verifique políticas RLS, grants e vínculo do usuário no Supabase.",
+  };
+}
+
+function hasAuthoritativeRouteData(data: SessionSnapshot | null): boolean {
+  if (!data) return false;
+  return Boolean(data.templo || data.profile?.templo_id || data.roles.length > 0);
+}
 
 async function loadSessionDataFromSupabase(currentSession: Session): Promise<{
   profile: ProfileRow;
@@ -144,7 +223,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<SessionState["profile"]>(null);
   const [templo, setTemplo] = useState<SessionState["templo"]>(null);
   const [roles, setRoles] = useState<Role[]>([]);
-  const [accountError, setAccountError] = useState<string | null>(null);
+  const [accountError, setAccountError] = useState<AccountErrorInfo | null>(null);
   const lastUid = useRef<string | null>(null);
   const loadSeq = useRef(0);
 
@@ -166,19 +245,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     } catch (clientErr) {
       try {
         const data = await getCurrentSessionData();
-        setProfile(data.profile as SessionState["profile"]);
-        setRoles((data.roles ?? []) as Role[]);
-        setTemplo(data.templo as SessionState["templo"]);
+        const snapshot = data as SessionSnapshot;
+        setProfile(snapshot.profile as SessionState["profile"]);
+        setRoles((snapshot.roles ?? []) as Role[]);
+        setTemplo(snapshot.templo as SessionState["templo"]);
+
+        if (!hasAuthoritativeRouteData(snapshot)) {
+          setAccountError(createAccountLoadError(clientErr, "Sessão carregada sem papel, templo ou vínculo de perfil."));
+          return null;
+        }
+
         setAccountError(null);
-        return data as SessionSnapshot;
+        return snapshot;
       } catch (serverErr) {
         console.error("Erro ao carregar dados da conta", { clientErr, serverErr });
         setProfile(null);
         setTemplo(null);
         setRoles([]);
-        const clientMessage = clientErr instanceof Error ? clientErr.message : String(clientErr);
-        const serverMessage = serverErr instanceof Error ? serverErr.message : String(serverErr);
-        setAccountError(clientMessage || serverMessage);
+        setAccountError(createAccountLoadError(clientErr, serverErr));
         return null;
       }
     }
