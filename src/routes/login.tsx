@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { AccountLoadError } from "@/components/AccountLoadError";
-import { useBrandingLogo } from "@/lib/branding";
+import loginLogoAsset from "@/assets/login-logo.png.asset.json";
 import { getSessionRouteDecision, useSession } from "@/lib/session";
 
 export const Route = createFileRoute("/login")({ component: LoginPage });
@@ -19,7 +19,6 @@ function LoginPage() {
   const [password, setPassword] = useState("");
   const [nome, setNome] = useState("");
   const [busy, setBusy] = useState(false);
-  const logoUrl = useBrandingLogo();
   const sessionState = useSession();
 
   if (!sessionState.loading && sessionState.session && sessionState.accountError) {
@@ -89,9 +88,9 @@ function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader className="text-center space-y-2">
           <img
-            src={logoUrl}
+            src={loginLogoAsset.url}
             alt="TemploHub"
-            className="mx-auto h-28 w-auto"
+            className="mx-auto h-36 w-auto"
           />
           <CardTitle className="sr-only">TemploHub</CardTitle>
           <CardDescription>
