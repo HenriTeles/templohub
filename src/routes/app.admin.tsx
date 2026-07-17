@@ -29,7 +29,10 @@ import {
   rejectTemplo,
   deleteTemplo,
   updateTemplo,
+  adminSetUserPassword,
 } from "@/lib/templo-admin.functions";
+import { KeyRound, Eye, EyeOff } from "lucide-react";
+
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
@@ -288,9 +291,12 @@ function AdminPage() {
 
       <BrandingCard />
 
+      <ResetUserPasswordCard />
+
       <CustomFieldsManager scope="global" />
 
       <EditTemploDialog templo={editing} onClose={() => setEditing(null)} onSaved={load} />
+
     </div>
   );
 }
@@ -459,3 +465,125 @@ function EditTemploDialog({
     </Dialog>
   );
 }
+
+function ResetUserPasswordCard() {
+  const [open, setOpen] = useState(false);
+  const [email, setEmail] = useState("templovajaro@hotmail.com");
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const reset = () => {
+    setPassword("");
+    setConfirm("");
+    setShow(false);
+  };
+
+  const submit = async () => {
+    if (!email.trim()) return toast.error("Informe o e-mail do usuário.");
+    if (password.length < 8) return toast.error("A senha deve ter ao menos 8 caracteres.");
+    if (password !== confirm) return toast.error("As senhas não coincidem.");
+    setBusy(true);
+    try {
+      await adminSetUserPassword({ data: { email: email.trim(), password } });
+      toast.success(`Senha atualizada para ${email.trim()}.`);
+      reset();
+      setOpen(false);
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <KeyRound className="w-4 h-4" /> Trocar senha de usuário
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Define uma nova senha imediatamente para qualquer usuário do sistema. Ação exclusiva do administrador geral.
+        </p>
+        <Button onClick={() => setOpen(true)} variant="outline">
+          <KeyRound className="w-4 h-4 mr-2" /> Abrir diálogo seguro
+        </Button>
+
+        <Dialog
+          open={open}
+          onOpenChange={(o) => {
+            setOpen(o);
+            if (!o) reset();
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Trocar senha de usuário</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <Label>E-mail do usuário</Label>
+                <Input
+                  type="email"
+                  autoComplete="off"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Nova senha</Label>
+                <div className="relative">
+                  <Input
+                    type={show ? "text" : "password"}
+                    autoComplete="new-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Ao menos 8 caracteres"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShow((v) => !v)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label={show ? "Ocultar senha" : "Mostrar senha"}
+                  >
+                    {show ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>Confirmar nova senha</Label>
+                <Input
+                  type={show ? "text" : "password"}
+                  autoComplete="new-password"
+                  value={confirm}
+                  onChange={(e) => setConfirm(e.target.value)}
+                />
+              </div>
+              <p className="text-xs text-muted-foreground">
+                A senha será aplicada imediatamente. Repasse ao titular por um canal seguro e oriente a alterá-la no primeiro acesso.
+              </p>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setOpen(false);
+                  reset();
+                }}
+              >
+                Cancelar
+              </Button>
+              <Button onClick={submit} disabled={busy}>
+                {busy ? "Aplicando…" : "Definir nova senha"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </CardContent>
+    </Card>
+  );
+}
+

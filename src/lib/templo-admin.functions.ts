@@ -101,3 +101,35 @@ export const createTemploRequest = createServerFn({ method: "POST" })
     return { templo_id: templo_id as string };
   });
 
+export const adminSetUserPassword = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((d) =>
+    z
+      .object({
+        email: z.string().email(),
+        password: z.string().min(8).max(128),
+      })
+      .parse(d),
+  )
+  .handler(async ({ data, context }) => {
+    await assertSuperAdmin(context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Busca o usuário pelo e-mail (case-insensitive) via Admin API paginada.
+    const target = data.email.trim().toLowerCase();
+    let userId: string | null = null;
+    for (let page = 1; page <= 20 && !userId; page++) {
+      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+      if (error) throw new Error(error.message);
+      const match = list.users.find((u) => (u.email ?? "").toLowerCase() === target);
+      if (match) userId = match.id;
+      if (list.users.length < 200) break;
+    }
+    if (!userId) throw new Error(`Usuário não encontrado: ${data.email}`);
+    const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
+      password: data.password,
+    });
+    if (updErr) throw new Error(updErr.message);
+    return { ok: true, email: target };
+  });
+
+
