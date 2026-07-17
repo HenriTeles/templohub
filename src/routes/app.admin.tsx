@@ -29,7 +29,10 @@ import {
   rejectTemplo,
   deleteTemplo,
   updateTemplo,
+  adminSetUserPassword,
 } from "@/lib/templo-admin.functions";
+import { KeyRound, Eye, EyeOff } from "lucide-react";
+
 
 export const Route = createFileRoute("/app/admin")({ component: AdminPage });
 
