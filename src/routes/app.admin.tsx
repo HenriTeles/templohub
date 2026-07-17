@@ -291,9 +291,12 @@ function AdminPage() {
 
       <BrandingCard />
 
+      <ResetUserPasswordCard />
+
       <CustomFieldsManager scope="global" />
 
       <EditTemploDialog templo={editing} onClose={() => setEditing(null)} onSaved={load} />
+
     </div>
   );
 }
