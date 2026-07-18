@@ -108,10 +108,10 @@ function EditMedium() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sexo]);
 
-  // Clear Janda when falange no longer qualifies.
+  // Clear Janda when falange no longer qualifies. Coluna é NOT NULL → grava false.
   useEffect(() => {
-    if (!jandaAplica && form.janda != null) {
-      setForm((f) => ({ ...f, janda: null }));
+    if (!jandaAplica && form.janda !== false) {
+      setForm((f) => ({ ...f, janda: false }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jandaAplica]);
