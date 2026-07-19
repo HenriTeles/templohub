@@ -86,11 +86,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Sistema seguro e multi-tenant para administração dos templos do Vale do Amanhecer." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "TemploHub — Gestão de Templos do Vale do Amanhecer" },
       { name: "twitter:description", content: "Sistema seguro e multi-tenant para administração dos templos do Vale do Amanhecer." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90cf039d-15bb-4803-82ec-38de7a9229cf/id-preview-c5e3b390--64b28fe8-e2e8-4d13-8de3-1e692eb06d61.lovable.app-1782932259518.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/90cf039d-15bb-4803-82ec-38de7a9229cf/id-preview-c5e3b390--64b28fe8-e2e8-4d13-8de3-1e692eb06d61.lovable.app-1782932259518.png" },
+
     ],
     links: [
       {
