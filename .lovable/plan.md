@@ -1,52 +1,68 @@
-## Diagnóstico
 
-Do I know what the issue is? Sim.
+# Auditoria — Migração TemploHub para Supabase externo
 
-O erro atual não é senha nem tela de login: a autenticação acontece, mas o carregamento da conta falha no Supabase externo porque as permissões de execução foram revogadas de funções usadas pelas políticas RLS.
+Objetivo: verificar cada camada da aplicação, produzir um relatório estruturado (o que está OK, o que ainda depende do Lovable Cloud, erros encontrados) e entregar um único arquivo SQL/instruções corrigindo pendências. Nenhuma alteração de funcionalidade — apenas migração/limpeza.
 
-Evidências capturadas:
+## Escopo da verificação (evidências já coletadas em modo plano)
 
-- `permission denied for function user_templo` ao ler os dados da conta.
-- fallback por server function falhando com `Not found` em uma rota `/_serverFn`.
-- tentativa de cadastro/onboarding falhando com `permission denied for function create_templo_request`.
+Base de dados / URLs / chaves — só o projeto externo `vuqogpswsdzlxuaeidcw` aparece:
+- `src/integrations/supabase/client.ts` → `https://vuqogpswsdzlxuaeidcw.supabase.co` + publishable JWT.
+- `.env`, `supabase/config.toml`, `vite.config.ts` → mesmo project ref, sem referências ao antigo projeto Cloud.
+- `src/integrations/supabase/client.server.ts` + `auth-middleware.ts` → leem `SUPABASE_URL` / `SUPABASE_PUBLISHABLE_KEY` / `SUPABASE_SERVICE_ROLE_KEY` do runtime; secrets confirmados no painel (`SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEYS`, etc.).
 
-Resultado: o app recebe sessão válida, mas não consegue descobrir se o usuário é administrador geral ou pertence ao templo Vajaro; por isso cai novamente na tela de “Cadastro do Templo”.
+Referências ao Lovable ainda presentes (todas são plataforma, não Lovable Cloud/Supabase antigo):
+- `package.json` → `@lovable.dev/vite-tanstack-config` (plugin de build; necessário para o próprio Lovable, sem vínculo com Cloud).
+- `src/lib/lovable-error-reporting.ts` + uso em `src/routes/__root.tsx` → hook opcional `window.__lovableEvents` (telemetria da preview; no-op fora do Lovable).
+- `__root.tsx` → `og:image` apontando para `pub-…r2.dev/…lovable.app…png` (screenshot antigo hospedado no CDN Lovable) e `twitter:site="@Lovable"`.
+- `.lovable/*` (config interno do editor) — não afeta runtime.
 
-## Plano de correção
+Nenhum uso de `functions.invoke`, nenhum secret `LOVABLE_*` fora do `LOVABLE_API_KEY` (AI Gateway opcional, não é Cloud).
 
-1. **Corrigir a causa no Supabase externo**
-   - Gerar um SQL de reparo para restaurar `EXECUTE` apenas nas funções necessárias ao login/RLS:
-     - helpers de leitura/autorização usados por políticas, como `user_templo`, `is_super_admin`, `can_write_templo`, `has_role`.
-     - `create_templo_request`, mantendo validação por `auth.uid()` para onboarding legítimo.
-   - Manter RPCs administrativas sensíveis, como aprovação/exclusão/edição de templos, restritas ao fluxo seguro já existente.
-   - Incluir consultas de diagnóstico/backfill para reconciliar perfis sem `templo_id` quando houver vínculo em `user_roles`.
+Auth: `src/routes/login.tsx` usa `supabase.auth.signInWithPassword`, `signUp` (com `emailRedirectTo`), `resetPasswordForEmail` (redirect para `/login`) e há `AccountCredentialsCard` para troca de e-mail/senha. **Falta uma rota `/reset-password`** que consuma o link de recuperação e chame `supabase.auth.updateUser({ password })` — hoje o link cai em `/login`, o usuário é auto-logado e nunca troca a senha.
 
-2. **Blindar o redirecionamento pós-login**
-   - No login, se a senha estiver correta mas a conta administrativa não carregar, não enviar para `/onboarding`.
-   - Exibir uma tela de erro de conta carregada parcialmente, com origem técnica visível.
-   - Só permitir `/onboarding` quando realmente não existir vínculo de templo, papel ou erro de leitura.
+Edge Functions: apenas `bootstrap-super-admin` — usa `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` do projeto externo. OK, mas precisa ser deployada no novo projeto (verificar via `supabase--curl_edge_functions`).
 
-3. **Mostrar a causa do erro na tela a partir de agora**
-   - Criar um painel reutilizável de erro de conta para `/`, `/login` e `/onboarding`.
-   - Exibir:
-     - origem: Supabase/RLS, server function ou sessão;
-     - detalhe bruto seguro, por exemplo `permission denied for function user_templo`;
-     - ação sugerida: tentar novamente ou sair.
-   - Preservar logs no console, mas não depender deles para o usuário entender o problema.
+Storage: buckets `mediuns-docs`, `mediuns-fotos`, `app-branding`, `templos-logos` já existem no projeto externo (todos privados). OK.
 
-4. **Reduzir dependência do fallback instável**
-   - Tratar o fallback `getCurrentSessionData` como diagnóstico auxiliar, não como caminho obrigatório para o login.
-   - Quando o fallback der `Not found`, mostrar isso na tela junto com o erro primário do Supabase.
+RLS / Functions / Triggers:
+- Todas as tabelas listadas têm políticas; helpers `is_super_admin`, `user_templo`, `has_role`, `can_write_templo` estão `SECURITY DEFINER` com `search_path=public`.
+- `set_updated_at` está sem `SECURITY DEFINER` (ok) mas os triggers de `updated_at` precisam ser conferidos no dump — a seção `db-triggers` mostra "There are no triggers", o que sugere que os triggers de `set_updated_at` e o `on_auth_user_created → handle_new_user` **não foram recriados** no projeto externo. Isso quebra criação automática de perfil no signup e o `updated_at` das tabelas.
+- Últimos scripts (`security-fix-definer-2026-07-18.sql` + `fix-rls-helpers-execute-2026-07-18.sql`) precisam estar aplicados na ordem correta — validar via consulta a `pg_proc`/`information_schema.routine_privileges`.
+- Extensões (`pgcrypto`, `pg_trgm`, `uuid-ossp`) foram criadas no dump inicial — reconfirmar no projeto externo.
 
-5. **Validação**
-   - Confirmar que uma conta autenticada nunca é enviada ao cadastro enquanto houver erro de leitura de perfil/templo.
-   - Confirmar que, se o banco ainda estiver mal configurado, a tela mostra exatamente a função/permissão que causou a falha.
-   - Confirmar que após executar o SQL no Supabase externo, administrador geral e templo Vajaro seguem para suas áreas corretas.
+Migrações pendentes / possíveis erros identificados a priori:
+1. **Trigger `on_auth_user_created` ausente** → novos signups não geram `profiles` (a menos que o fluxo passe por `create_templo_request`, que faz upsert). Impacto: super admin criado por convite fica sem perfil.
+2. **Triggers `set_updated_at` ausentes** em todas as tabelas com `updated_at`.
+3. **Rota `/reset-password` inexistente** → fluxo de recuperação de senha incompleto.
+4. **`og:image` e `twitter:site`** apontam para asset Lovable antigo — não quebra nada, mas continua exibindo screenshot desatualizado como preview social. Ajustar para logo do TemploHub ou remover.
+5. **Confirmar `EXECUTE`** em `user_templo`, `is_super_admin`, `can_write_templo`, `has_role` para `authenticated` (fix 07-18 já entregue, mas precisa ser aplicado no banco novo se ainda não foi).
+6. **`bootstrap-super-admin`** precisa ser (re)deployada no novo projeto e o secret `BOOTSTRAP_SETUP_TOKEN` reconfigurado.
 
-## Observação importante
+## Entregáveis (fase de build)
 
-Como a causa principal está no Supabase externo, a parte definitiva exige executar o SQL de reparo no SQL Editor do Supabase. A alteração no app vai impedir o redirecionamento errado e mostrar a causa real na tela mesmo antes do banco ser corrigido.
+1. **Consulta ao Supabase externo** (via `supabase--read_query`) para confirmar:
+   - Existência dos triggers (`pg_trigger`) e das extensões (`pg_extension`).
+   - Grants atuais em `user_templo`, `is_super_admin`, `has_role`, `can_write_templo`, `create_templo_request`.
+   - Status do deploy da edge function `bootstrap-super-admin`.
 
-<presentation-actions>
-<presentation-link url="https://docs.lovable.dev/tips-tricks/troubleshooting">Troubleshooting docs</presentation-link>
-</presentation-actions>
+2. **Relatório** em `/mnt/documents/auditoria-migracao-2026-07-19.md` com três seções: ✅ O que está correto · ⚠️ Ainda depende do Lovable (telemetria opcional + plugin de build + og:image) · ❌ Erros encontrados (triggers ausentes, rota reset-password, etc.).
+
+3. **Arquivo único de correção** em `/mnt/documents/fix-migracao-supabase-2026-07-19.sql` contendo, de forma idempotente:
+   - `CREATE EXTENSION IF NOT EXISTS` para pgcrypto/pg_trgm/uuid-ossp.
+   - Recriação do trigger `on_auth_user_created` → `handle_new_user`.
+   - Recriação dos triggers `set_updated_at` em cada tabela que tem a coluna.
+   - Reaplicação dos `GRANT EXECUTE` dos helpers de RLS a `authenticated` (defensivo).
+   - Comentários sobre passos manuais (deploy da edge function + set do `BOOTSTRAP_SETUP_TOKEN`).
+
+4. **Correções de código** (mínimas, apenas para fechar a migração):
+   - Criar `src/routes/reset-password.tsx` com formulário para `supabase.auth.updateUser({ password })`.
+   - Ajustar `resetPasswordForEmail` em `src/routes/login.tsx` para `redirectTo: ${origin}/reset-password`.
+   - Substituir `og:image`/`twitter:image` do `__root.tsx` pela logo do TemploHub (ou remover) e trocar `twitter:site` para um handle próprio ou remover.
+
+5. **Checklist final** de migração 100% concluída em `/mnt/documents/checklist-migracao-2026-07-19.md`.
+
+## O que fica intencionalmente fora
+
+- Não remover `@lovable.dev/vite-tanstack-config` nem `lovable-error-reporting.ts` — são infraestrutura do editor Lovable, não do Lovable Cloud. Removê-los quebraria a preview.
+- Não alterar RLS/negócio existente; apenas restaurar o estado pós-migração.
+- Não tocar em `LOVABLE_API_KEY` (AI Gateway, opcional).
