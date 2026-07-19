@@ -70,7 +70,7 @@ function LoginPage() {
         nav({ to: "/" });
       } else {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/login`,
+          redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
         toast.success("Enviamos um link de recuperação para o seu e-mail.");
