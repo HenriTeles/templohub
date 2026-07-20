@@ -114,21 +114,52 @@ export const adminSetUserPassword = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await assertSuperAdmin(context.userId);
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    // Busca o usuário pelo e-mail (case-insensitive) via Admin API paginada.
     const target = data.email.trim().toLowerCase();
+
+    // 1) Lookup direto em auth.users (service_role tem acesso ao schema auth).
     let userId: string | null = null;
-    for (let page = 1; page <= 20 && !userId; page++) {
-      const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-      if (error) throw new Error(error.message);
-      const match = list.users.find((u) => (u.email ?? "").toLowerCase() === target);
-      if (match) userId = match.id;
-      if (list.users.length < 200) break;
+    try {
+      const { data: row, error } = await supabaseAdmin
+        .schema("auth" as never)
+        .from("users" as never)
+        .select("id,email")
+        .ilike("email", target)
+        .limit(1)
+        .maybeSingle();
+      if (error) {
+        console.error("[adminSetUserPassword] auth.users lookup falhou:", error.message);
+      } else if (row && (row as { id?: string }).id) {
+        userId = (row as { id: string }).id;
+      }
+    } catch (e) {
+      console.error("[adminSetUserPassword] exceção no lookup auth.users:", (e as Error).message);
     }
+
+    // 2) Fallback: paginação da Admin API.
+    if (!userId) {
+      for (let page = 1; page <= 20 && !userId; page++) {
+        const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
+        if (error) {
+          console.error("[adminSetUserPassword] listUsers falhou:", error.message);
+          throw new Error(`Falha ao consultar usuários: ${error.message}`);
+        }
+        const match = list.users.find((u) => (u.email ?? "").toLowerCase() === target);
+        if (match) userId = match.id;
+        if (list.users.length < 200) break;
+      }
+    }
+
     if (!userId) throw new Error(`Usuário não encontrado: ${data.email}`);
+
+    // Atualiza senha e já confirma o e-mail (dispensa qualquer verificação por link).
     const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
       password: data.password,
+      email_confirm: true,
     });
-    if (updErr) throw new Error(updErr.message);
+    if (updErr) {
+      console.error("[adminSetUserPassword] updateUserById falhou:", updErr.message);
+      throw new Error(updErr.message);
+    }
     return { ok: true, email: target };
   });
 
