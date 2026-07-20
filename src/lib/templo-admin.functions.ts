@@ -112,54 +112,27 @@ export const adminSetUserPassword = createServerFn({ method: "POST" })
       .parse(d),
   )
   .handler(async ({ data, context }) => {
-    await assertSuperAdmin(context.userId);
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const target = data.email.trim().toLowerCase();
 
-    // 1) Lookup direto em auth.users (service_role tem acesso ao schema auth).
-    let userId: string | null = null;
-    try {
-      const { data: row, error } = await supabaseAdmin
-        .schema("auth" as never)
-        .from("users" as never)
-        .select("id,email")
-        .ilike("email", target)
-        .limit(1)
-        .maybeSingle();
-      if (error) {
-        console.error("[adminSetUserPassword] auth.users lookup falhou:", error.message);
-      } else if (row && (row as { id?: string }).id) {
-        userId = (row as { id: string }).id;
+    // Não depende mais de SUPABASE_SERVICE_ROLE_KEY no runtime do app.
+    // O insert autenticado aciona um trigger SECURITY DEFINER no banco, que
+    // valida o Administrador Geral e aplica a senha diretamente em auth.users.
+    const { error } = await (context.supabase as any)
+      .from("admin_password_resets")
+      .insert({ target_email: target, new_password: data.password });
+
+    if (error) {
+      const message = error.message || "Falha ao trocar a senha.";
+      console.error("[adminSetUserPassword] RPC via trigger falhou:", message);
+      if (message.includes("admin_password_resets") && message.includes("does not exist")) {
+        throw new Error("A estrutura segura de troca de senha ainda não foi aplicada no banco. Execute o script fix-troca-senha-sem-service-role-2026-07-20.sql no Supabase.");
       }
-    } catch (e) {
-      console.error("[adminSetUserPassword] exceção no lookup auth.users:", (e as Error).message);
-    }
-
-    // 2) Fallback: paginação da Admin API.
-    if (!userId) {
-      for (let page = 1; page <= 20 && !userId; page++) {
-        const { data: list, error } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 200 });
-        if (error) {
-          console.error("[adminSetUserPassword] listUsers falhou:", error.message);
-          throw new Error(`Falha ao consultar usuários: ${error.message}`);
-        }
-        const match = list.users.find((u) => (u.email ?? "").toLowerCase() === target);
-        if (match) userId = match.id;
-        if (list.users.length < 200) break;
+      if (message.toLowerCase().includes("forbidden")) {
+        throw new Error("Apenas o Administrador Geral pode trocar senhas de usuários.");
       }
+      throw new Error(message);
     }
 
-    if (!userId) throw new Error(`Usuário não encontrado: ${data.email}`);
-
-    // Atualiza senha e já confirma o e-mail (dispensa qualquer verificação por link).
-    const { error: updErr } = await supabaseAdmin.auth.admin.updateUserById(userId, {
-      password: data.password,
-      email_confirm: true,
-    });
-    if (updErr) {
-      console.error("[adminSetUserPassword] updateUserById falhou:", updErr.message);
-      throw new Error(updErr.message);
-    }
     return { ok: true, email: target };
   });
 
