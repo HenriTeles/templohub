@@ -76,7 +76,6 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const role = primaryRole(s.roles);
   const roleLabel = role ? ROLE_LABEL[role] : "";
-  const contextName = isSuper ? "Administração Geral" : s.templo?.nome ?? "";
 
   const Sidebar = (
     <aside className="w-72 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col h-full">
