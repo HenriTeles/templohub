@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState, type ReactNode } from "react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useBrandingLogo } from "@/lib/branding";
 import { AccountLoadError } from "@/components/AccountLoadError";
 
 const NAV = [

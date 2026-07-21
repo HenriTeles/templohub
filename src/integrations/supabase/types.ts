@@ -40,6 +40,39 @@ export type Database = {
           },
         ]
       }
+      admin_password_resets: {
+        Row: {
+          applied_at: string | null
+          created_at: string
+          error_message: string | null
+          id: string
+          new_password: string | null
+          requested_by: string
+          status: string
+          target_email: string
+        }
+        Insert: {
+          applied_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          new_password?: string | null
+          requested_by?: string
+          status?: string
+          target_email: string
+        }
+        Update: {
+          applied_at?: string | null
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          new_password?: string | null
+          requested_by?: string
+          status?: string
+          target_email?: string
+        }
+        Relationships: []
+      }
       anexos: {
         Row: {
           created_at: string
