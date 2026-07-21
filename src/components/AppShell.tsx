@@ -47,7 +47,6 @@ export function AppShell({ children }: { children: ReactNode }) {
   const nav = useNavigate();
   const path = useRouterState({ select: (st) => st.location.pathname });
   const [open, setOpen] = useState(false);
-  const brandingLogo = useBrandingLogo();
   const temploLogo = useTemploLogo(s.templo?.logo_path);
   const decision = getSessionRouteDecision(s);
 
