@@ -80,22 +80,11 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const Sidebar = (
     <aside className="w-72 shrink-0 bg-sidebar text-sidebar-foreground flex flex-col h-full">
-      {/* Header */}
-      <div className="px-5 pt-5 pb-4 flex items-start gap-3">
-        <div className="w-12 h-12 rounded-xl bg-white flex items-center justify-center overflow-hidden shrink-0">
-          <img src={brandingLogo} alt="TemploHub" className="w-full h-full object-contain" />
-        </div>
-        <div className="flex-1 min-w-0 pt-0.5">
-          <div className="font-semibold text-lg leading-tight">TemploHub</div>
-          <div className="text-sm text-sidebar-primary truncate">{contextName}</div>
-        </div>
-      </div>
-
       {/* Templo card */}
       {!isSuper && s.templo && (
-        <div className="px-4">
+        <div className="px-4 pt-5">
           <div className="flex items-center gap-3 rounded-xl bg-sidebar-accent/60 p-3">
-            <div className="w-12 h-12 rounded-full overflow-hidden bg-sidebar-accent shrink-0 ring-1 ring-sidebar-border">
+            <div className="w-14 h-14 rounded-full overflow-hidden bg-sidebar-accent shrink-0 ring-1 ring-sidebar-border">
               {temploLogo ? (
                 <img src={temploLogo} alt="" className="w-full h-full object-cover" />
               ) : (
