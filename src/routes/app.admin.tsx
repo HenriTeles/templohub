@@ -473,6 +473,7 @@ function ResetUserPasswordCard() {
   const [confirm, setConfirm] = useState("");
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
+  const setUserPassword = useServerFn(adminSetUserPassword);
 
   const reset = () => {
     setPassword("");
@@ -486,7 +487,7 @@ function ResetUserPasswordCard() {
     if (password !== confirm) return toast.error("As senhas não coincidem.");
     setBusy(true);
     try {
-      await adminSetUserPassword({ data: { email: email.trim(), password } });
+      await setUserPassword({ data: { email: email.trim(), password } });
       toast.success(`Senha atualizada para ${email.trim()}.`);
       reset();
       setOpen(false);
