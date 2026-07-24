@@ -1,22 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { assertSuperAdmin } from "./templo-admin.server";
 
 // Todas as chamadas administrativas passam por server functions autenticadas.
 // O backend usa o admin client (service_role) para executar as SECURITY DEFINER
 // que agora estão revogadas de authenticated.
 
-async function assertSuperAdmin(userId: string) {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data, error } = await supabaseAdmin
-    .from("user_roles")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("role", "super_admin")
-    .limit(1);
-  if (error) throw new Error(error.message);
-  if (!data || data.length === 0) throw new Error("forbidden");
-}
 
 export const approveTemplo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
