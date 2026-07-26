@@ -64,7 +64,7 @@ export const saveMediumRecord = createServerFn({ method: "POST" })
 
     let savedId = data.id;
     if (data.id === "new") {
-      const { data: inserted, error: insertError } = await supabaseAdmin
+      const { data: inserted, error: insertError } = await (supabaseAdmin as any)
         .from("mediuns")
         .insert(payload)
         .select("id")
@@ -72,7 +72,7 @@ export const saveMediumRecord = createServerFn({ method: "POST" })
       if (insertError) throw new Error(insertError.message);
       savedId = inserted.id;
     } else {
-      const { data: updated, error: updateError } = await supabaseAdmin
+      const { data: updated, error: updateError } = await (supabaseAdmin as any)
         .from("mediuns")
         .update(payload)
         .eq("id", data.id)
