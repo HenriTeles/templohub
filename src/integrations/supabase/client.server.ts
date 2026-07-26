@@ -5,6 +5,16 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 
+const FALLBACK_SUPABASE_URL = 'https://vuqogpswsdzlxuaeidcw.supabase.co';
+
+function pickEnvValue(...values: Array<string | undefined>): string | undefined {
+  for (const value of values) {
+    const trimmed = value?.trim();
+    if (trimmed) return trimmed;
+  }
+  return undefined;
+}
+
 function isNewSupabaseApiKey(value: string): boolean {
   return value.startsWith('sb_publishable_') || value.startsWith('sb_secret_');
 }
@@ -37,9 +47,12 @@ function looksLikeSecretKey(value: unknown): value is string {
 }
 
 function resolveSupabaseSecretKey(): string | undefined {
+  const external = process.env.EXTERNAL_SUPABASE_SERVICE_ROLE_KEY;
+  if (looksLikeSecretKey(external)) return external.trim();
+
   // 1) Formato legado (texto puro em uma env dedicada)
   const legacy = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (looksLikeSecretKey(legacy)) return legacy!.trim();
+  if (looksLikeSecretKey(legacy)) return legacy.trim();
 
   // 2) Novo formato: SUPABASE_SECRET_KEYS pode ser JSON ou string simples
   const secretKeysRaw = process.env.SUPABASE_SECRET_KEYS;
@@ -71,7 +84,7 @@ function resolveSupabaseSecretKey(): string | undefined {
 }
 
 function createSupabaseAdminClient() {
-  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_URL = pickEnvValue(process.env.SUPABASE_URL, process.env.VITE_SUPABASE_URL, FALLBACK_SUPABASE_URL);
   const SUPABASE_SERVICE_ROLE_KEY = resolveSupabaseSecretKey();
 
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
