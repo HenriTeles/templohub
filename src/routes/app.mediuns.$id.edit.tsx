@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
 import { useSession } from "@/lib/session";
+import { saveMediumRecord } from "@/lib/mediums.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -32,6 +34,7 @@ export const Route = createFileRoute("/app/mediuns/$id/edit")({
 
 type Option = { id: string; nome: string };
 type Form = Record<string, string | boolean | null>;
+type FotoPayload = { name: string; contentType: string; base64: string };
 
 const SITUACOES = [
   { v: "ativo", l: "Ativo" },
@@ -39,6 +42,20 @@ const SITUACOES = [
   { v: "afastado", l: "Afastado" },
   { v: "desligado", l: "Desligado" },
 ];
+
+async function fileToBase64Payload(file: File): Promise<FotoPayload> {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return {
+    name: file.name,
+    contentType: file.type || "application/octet-stream",
+    base64: btoa(binary),
+  };
+}
 
 function EditMedium() {
   const { id } = useParams({ from: "/app/mediuns/$id/edit" });
@@ -51,6 +68,7 @@ function EditMedium() {
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [foto, setFoto] = useState<File | null>(null);
+  const saveMedium = useServerFn(saveMediumRecord);
 
   const loadedIdRef = useRef<string | null>(null);
 
@@ -122,18 +140,9 @@ function EditMedium() {
     if (!s.templo?.id) return;
     setBusy(true);
     try {
-      let foto_path = (form.foto_path as string) ?? null;
-      if (foto) {
-        const key = `${s.templo.id}/${crypto.randomUUID()}-${foto.name}`;
-        const { error: upErr } = await db.storage
-          .from("mediuns-fotos")
-          .upload(key, foto, { upsert: true });
-        if (upErr) throw upErr;
-        foto_path = key;
-      }
       const payload: Record<string, unknown> = {
         ...form,
-        foto_path,
+        foto_path: (form.foto_path as string) ?? null,
         templo_id: s.templo.id,
         created_by: s.userId,
       };
@@ -141,44 +150,16 @@ function EditMedium() {
         if (payload[k] === "") payload[k] = null;
       });
 
-      let savedId = id;
-      if (isNew) {
-        delete payload.id;
-        const { data: inserted, error } = await db
-          .from("mediuns")
-          .insert(payload)
-          .select("id")
-          .single();
-        if (error) throw error;
-        savedId = inserted.id;
-        await db.from("historico").insert({
-          templo_id: s.templo.id,
-          mediun_id: savedId,
-          user_id: s.userId,
-          acao: "cadastro_criado",
-          detalhes: { por: s.profile?.email },
-        });
-      } else {
-        const { error } = await db.from("mediuns").update(payload).eq("id", id);
-        if (error) throw error;
-        await db.from("historico").insert({
-          templo_id: s.templo.id,
-          mediun_id: id,
-          user_id: s.userId,
-          acao: "cadastro_atualizado",
-          detalhes: { por: s.profile?.email },
-        });
-      }
-
-      const rows = Object.entries(customValues)
-        .filter(([, v]) => v !== undefined)
-        .map(([field_id, valor]) => ({ mediun_id: savedId, field_id, valor: valor || null }));
-      if (rows.length) {
-        const { error: cvErr } = await db
-          .from("medium_custom_values")
-          .upsert(rows, { onConflict: "mediun_id,field_id" });
-        if (cvErr) throw cvErr;
-      }
+      const result = await saveMedium({
+        data: {
+          id,
+          temploId: s.templo.id,
+          payload,
+          customValues,
+          foto: foto ? await fileToBase64Payload(foto) : null,
+        },
+      });
+      const savedId = result.id;
 
       toast.success(isNew ? "Médium cadastrado." : "Alterações salvas.");
       nav({ to: "/app/mediuns/$id", params: { id: savedId } });
