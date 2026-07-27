@@ -77,7 +77,15 @@ function MediunsPage() {
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
+      {error && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 p-4 text-sm space-y-2">
+          <p>{error}</p>
+          <Button size="sm" variant="outline" onClick={() => void load()}>Tentar novamente</Button>
+        </div>
+      )}
+      {loading && !error && <p className="text-sm text-muted-foreground">Carregando…</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+
         {filtered.map((r) => (
           <Link key={r.id} to="/app/mediuns/$id" params={{ id: r.id }}>
             <Card className="hover:border-accent transition-colors">
