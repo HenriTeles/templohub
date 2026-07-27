@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { db } from "@/lib/db";
+import { useCallback, useEffect, useState } from "react";
+import { getMediunsList } from "@/lib/mediuns-read.functions";
 import { useSession } from "@/lib/session";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -27,24 +27,35 @@ function MediunsPage() {
   const s = useSession();
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const temploId = s.templo?.id;
+
+  const load = useCallback(async () => {
+    if (!temploId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await getMediunsList({ data: { temploId } });
+      setRows((res.rows ?? []) as Row[]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Não foi possível carregar os médiuns.");
+    } finally {
+      setLoading(false);
+    }
+  }, [temploId]);
 
   useEffect(() => {
-    if (!s.templo?.id) return;
-    (async () => {
-      const { data } = await db
-        .from("mediuns")
-        .select("id, nome_completo, nome_emissao, funcao, polaridade, situacao, cidade, foto_path")
-        .eq("templo_id", s.templo!.id)
-        .order("nome_completo");
-      setRows((data ?? []) as Row[]);
-    })();
-  }, [s.templo?.id]);
+    void load();
+  }, [load]);
 
   const filtered = rows.filter((r) =>
     !q ||
     r.nome_completo.toLowerCase().includes(q.toLowerCase()) ||
     (r.nome_emissao ?? "").toLowerCase().includes(q.toLowerCase()),
   );
+
 
   return (
     <div className="p-6 space-y-4 max-w-6xl mx-auto">
