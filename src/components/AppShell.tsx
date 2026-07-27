@@ -28,13 +28,18 @@ function useTemploLogo(path: string | null | undefined) {
     let alive = true;
     (async () => {
       if (!path) { setUrl(null); return; }
-      const { data } = await supabase.storage.from("templos-logos").createSignedUrl(path, 3600);
-      if (alive && data?.signedUrl) setUrl(data.signedUrl);
+      try {
+        const { temploLogoUrl } = await getBrandingUrls();
+        if (alive) setUrl(temploLogoUrl ?? null);
+      } catch {
+        if (alive) setUrl(null);
+      }
     })();
     return () => { alive = false; };
   }, [path]);
   return url;
 }
+
 
 function primaryRole(roles: Role[]): Role | null {
   const order: Role[] = ["super_admin", "admin", "secretario", "consulta"];
