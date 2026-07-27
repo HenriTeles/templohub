@@ -131,7 +131,7 @@ function MediunsPage() {
             </Card>
           </Link>
         ))}
-        {!filtered.length && (
+        {!loading && !error && !filtered.length && (
           <p className="text-sm text-muted-foreground col-span-full">Nenhum resultado.</p>
         )}
       </div>
