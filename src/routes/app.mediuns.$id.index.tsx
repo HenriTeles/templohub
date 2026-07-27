@@ -1,6 +1,5 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { db } from "@/lib/db";
 import { getMediumDetail, deleteMediumRecord } from "@/lib/mediuns-read.functions";
 import { useSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
