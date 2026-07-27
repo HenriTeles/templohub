@@ -1,6 +1,8 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Users, Search, Settings, ShieldCheck, LogOut, Mail, Menu } from "lucide-react";
 import { db as supabase } from "@/lib/db";
+import { getBrandingUrls } from "@/lib/mediuns-read.functions";
+
 import { getSessionRouteDecision, useSession, type Role } from "@/lib/session";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,13 +30,18 @@ function useTemploLogo(path: string | null | undefined) {
     let alive = true;
     (async () => {
       if (!path) { setUrl(null); return; }
-      const { data } = await supabase.storage.from("templos-logos").createSignedUrl(path, 3600);
-      if (alive && data?.signedUrl) setUrl(data.signedUrl);
+      try {
+        const { temploLogoUrl } = await getBrandingUrls();
+        if (alive) setUrl(temploLogoUrl ?? null);
+      } catch {
+        if (alive) setUrl(null);
+      }
     })();
     return () => { alive = false; };
   }, [path]);
   return url;
 }
+
 
 function primaryRole(roles: Role[]): Role | null {
   const order: Role[] = ["super_admin", "admin", "secretario", "consulta"];

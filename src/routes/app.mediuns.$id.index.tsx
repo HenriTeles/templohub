@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { db } from "@/lib/db";
+import { useCallback, useEffect, useState } from "react";
+import { getMediumDetail, deleteMediumRecord } from "@/lib/mediuns-read.functions";
 import { useSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,61 +37,52 @@ function MediumDetail() {
   const [trinoNome, setTrinoNome] = useState<string | null>(null);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoadError(null);
+    try {
+      const res = await getMediumDetail({ data: { id } });
+      setM(res.medium as unknown as Row);
+      setFotoUrl(res.fotoUrl ?? null);
+      setTrinoNome(res.trinoNome ?? null);
+      setHistorico(res.historico ?? []);
+      setCustomFields((res.customFields ?? []) as unknown as CustomField[]);
+      setCustomValues(res.customValues ?? {});
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Não foi possível carregar a ficha do médium.");
+    }
+  }, [id]);
 
   useEffect(() => {
-    (async () => {
-      const { data } = await db.from("mediuns").select("*").eq("id", id).maybeSingle();
-      if (!data) return;
-      setM(data as Row);
-      if (data.foto_path) {
-        const { data: signed } = await db.storage
-          .from("mediuns-fotos")
-          .createSignedUrl(data.foto_path, 3600);
-        if (signed?.signedUrl) setFotoUrl(signed.signedUrl);
-      }
-      if (data.trino_id) {
-        const { data: t } = await db.from("trinos").select("nome").eq("id", data.trino_id).maybeSingle();
-        setTrinoNome(t?.nome ?? null);
-      }
-      const { data: h } = await db
-        .from("historico")
-        .select("id, acao, created_at")
-        .eq("mediun_id", id)
-        .order("created_at", { ascending: false });
-      setHistorico((h ?? []) as typeof historico);
-
-      if (s.templo?.id) {
-        const { data: cf } = await db
-          .from("medium_custom_fields")
-          .select("*")
-          .or(`templo_id.is.null,templo_id.eq.${s.templo.id}`)
-          .order("ordem")
-          .order("created_at");
-        setCustomFields((cf ?? []) as CustomField[]);
-      }
-      const { data: vals } = await db
-        .from("medium_custom_values")
-        .select("field_id, valor")
-        .eq("mediun_id", id);
-      const map: Record<string, string> = {};
-      for (const v of (vals ?? []) as Array<{ field_id: string; valor: string | null }>) {
-        if (v.valor != null) map[v.field_id] = v.valor;
-      }
-      setCustomValues(map);
-    })();
-  }, [id, s.templo?.id]);
+    void load();
+  }, [load]);
 
   const remove = async () => {
     if (!confirm("Excluir este médium?")) return;
-    const { error } = await db.from("mediuns").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await deleteMediumRecord({ data: { id } });
       toast.success("Removido.");
       nav({ to: "/app/mediuns" });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível excluir.");
     }
   };
 
+  if (loadError) {
+    return (
+      <div className="p-6 max-w-xl mx-auto space-y-3">
+        <p className="text-sm text-destructive">{loadError}</p>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => void load()}>Tentar novamente</Button>
+          <Link to="/app/mediuns"><Button variant="ghost">Voltar à lista</Button></Link>
+        </div>
+      </div>
+    );
+  }
+
   if (!m) return <div className="p-6 text-muted-foreground">Carregando…</div>;
+
 
   const info = (label: string, v: unknown) => (
     <div>
