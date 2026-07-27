@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { db as supabase } from "@/lib/db";
+import { getBrandingUrls } from "@/lib/mediuns-read.functions";
 import defaultLogo from "@/assets/templohub-logo.png.asset.json";
 
 export const BRANDING_LOGO_EVENT = "templohub:branding-logo-updated";
@@ -9,16 +9,18 @@ export function useBrandingLogo(): string {
   useEffect(() => {
     let alive = true;
     const load = async () => {
-      const { data } = await supabase.from("app_settings").select("logo_path").eq("id", 1).maybeSingle();
-      const path = (data as { logo_path: string | null } | null)?.logo_path;
-      if (!path) { if (alive) setUrl(defaultLogo.url); return; }
-      const { data: signed } = await supabase.storage.from("app-branding").createSignedUrl(path, 3600);
-      if (alive && signed?.signedUrl) setUrl(signed.signedUrl);
+      try {
+        const { appLogoUrl } = await getBrandingUrls();
+        if (alive) setUrl(appLogoUrl || defaultLogo.url);
+      } catch {
+        if (alive) setUrl(defaultLogo.url);
+      }
     };
-    load();
-    const handler = () => load();
+    void load();
+    const handler = () => void load();
     window.addEventListener(BRANDING_LOGO_EVENT, handler);
     return () => { alive = false; window.removeEventListener(BRANDING_LOGO_EVENT, handler); };
   }, []);
   return url;
 }
+
