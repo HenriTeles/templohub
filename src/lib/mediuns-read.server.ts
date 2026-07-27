@@ -100,11 +100,11 @@ export async function readMediumDetail(userId: string, id: string) {
   }
 
   return {
-    medium: row as Record<string, unknown>,
+    medium: JSON.parse(JSON.stringify(row)) as Record<string, string | number | boolean | null>,
     fotoUrl,
     trinoNome,
     historico: (historico ?? []) as Array<{ id: string; acao: string; created_at: string }>,
-    customFields: (customFields ?? []) as Array<Record<string, unknown>>,
+    customFields: JSON.parse(JSON.stringify(customFields ?? [])) as Array<Record<string, string | number | boolean | null>>,
     customValues,
   };
 }
