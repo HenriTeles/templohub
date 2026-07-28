@@ -168,6 +168,8 @@ function EditMedium() {
           payload,
           customValues,
           foto: foto ? await fileToBase64Payload(foto) : null,
+          emissao: emissao ? await fileToBase64Payload(emissao) : null,
+          removerEmissao,
         },
       });
       const savedId = result.id;
