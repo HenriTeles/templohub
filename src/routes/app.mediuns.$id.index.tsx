@@ -230,6 +230,21 @@ function MediumDetail() {
           )}
 
           <Card>
+            <CardHeader><CardTitle className="text-base">Emissão</CardTitle></CardHeader>
+            <CardContent>
+              {emissaoUrl ? (
+                <a href={emissaoUrl} target="_blank" rel="noreferrer" download>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-1" /> {emissaoNome ?? "Baixar emissão"}
+                  </Button>
+                </a>
+              ) : (
+                <p className="text-sm text-muted-foreground">—</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader><CardTitle className="text-base">Dados complementares</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
               {info("Data da última classificação", fmtDate(m.data_ultima_classificacao))}
@@ -244,6 +259,7 @@ function MediumDetail() {
               {m.sexo === "feminino" && (m.falange_missionaria === "Yuricy" || m.falange_missionaria === "Yuricy Lua") && info("Janda", m.janda)}
             </CardContent>
           </Card>
+
 
 
           {customFields.length > 0 && (
