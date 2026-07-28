@@ -104,8 +104,14 @@ function EditMedium() {
           if (v.valor != null) map[v.field_id] = v.valor;
         }
         setCustomValues(map);
+        try {
+          setEmissaoAtual(await loadEmissao({ data: { id } }));
+        } catch {
+          setEmissaoAtual(null);
+        }
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.templo?.id, id, isNew]);
 
   const set = (k: string) => (v: string | boolean | null) =>
