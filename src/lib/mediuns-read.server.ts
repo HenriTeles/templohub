@@ -122,6 +122,9 @@ export async function readMediumDetail(userId: string, id: string) {
   return {
     medium: JSON.parse(JSON.stringify(row)) as Record<string, string | number | boolean | null>,
     fotoUrl,
+    emissaoUrl: emissao.emissaoUrl,
+    emissaoNome: emissao.emissaoNome,
+
     trinoNome,
     historico: (historico ?? []) as Array<{ id: string; acao: string; created_at: string }>,
     customFields: JSON.parse(JSON.stringify(customFields ?? [])) as Array<Record<string, string | number | boolean | null>>,
