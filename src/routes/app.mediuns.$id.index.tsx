@@ -47,6 +47,8 @@ function MediumDetail() {
       const res = await getMediumDetail({ data: { id } });
       setM(res.medium as unknown as Row);
       setFotoUrl(res.fotoUrl ?? null);
+      setEmissaoUrl(res.emissaoUrl ?? null);
+      setEmissaoNome(res.emissaoNome ?? null);
       setTrinoNome(res.trinoNome ?? null);
       setHistorico(res.historico ?? []);
       setCustomFields((res.customFields ?? []) as unknown as CustomField[]);
