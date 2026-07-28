@@ -45,6 +45,24 @@ export async function signedUrl(bucket: string, path: string | null | undefined)
   return data?.signedUrl ?? null;
 }
 
+export async function readEmissao(mediunId: string) {
+  const { data } = await supabaseAdmin
+    .from("anexos")
+    .select("id, nome, storage_path, mime_type, created_at")
+    .eq("mediun_id", mediunId)
+    .like("storage_path", "%/emissoes/%")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const row = ((data ?? [])[0] ?? null) as
+    | { id: string; nome: string; storage_path: string; mime_type: string | null }
+    | null;
+  if (!row) return { emissaoNome: null as string | null, emissaoUrl: null as string | null };
+  return {
+    emissaoNome: row.nome,
+    emissaoUrl: await signedUrl("mediuns-docs", row.storage_path),
+  };
+}
+
 export async function listMediuns(userId: string, temploId: string) {
   await assertTemploAccess(userId, temploId);
   const { data, error } = await supabaseAdmin
