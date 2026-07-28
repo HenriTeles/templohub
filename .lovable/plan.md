@@ -1,52 +1,20 @@
-## Diagnóstico (confirmado)
+## Objetivo
 
-As requisições do navegador para o Supabase externo estão retornando **403** em praticamente tudo:
+Adicionar à ficha de cada médium um campo **Emissão** que permita enviar (upload) e baixar (download) um arquivo PDF, JPG ou JPEG.
 
-```
-GET /rest/v1/profiles  → 42501 permission denied for function user_templo
-GET /rest/v1/mediuns   → 42501 permission denied for function user_templo
-GET /rest/v1/falanges / centurias → mesmo erro
-POST /storage/v1/object/sign/templos-logos/... → 403 permission denied for function user_templo
-```
+## Como vai funcionar
 
-Ou seja: os dados **estão** no lugar certo (o servidor lê tudo corretamente — a server function de sessão retornou perfil, papéis, templo e `logo_path`). O que falta é o `GRANT EXECUTE` para o papel `authenticated` nas funções auxiliares de RLS (`user_templo`, `is_super_admin`, `has_role`, `can_write_templo`) no banco externo — removido em um hardening anterior. Sem isso, toda política que chama essas funções falha.
-
-Isso explica os dois sintomas exatos:
-- Após salvar (o salvamento passa, pois vai por server function com service role) a navegação vai para a ficha, cuja leitura é client-side → 403 → o componente fica eternamente em "Carregando…".
-- As fotos/logos somem porque `createSignedUrl` nos buckets `templos-logos`, `app-branding` e `mediuns-fotos` também depende dessas funções.
-
-## Correção
-
-### 1. Reparo definitivo no banco (SQL para você executar)
-
-O acesso SQL direto ao banco externo falha por autenticação, então vou gerar um script pronto para colar no SQL Editor do Supabase:
-
-```sql
-GRANT EXECUTE ON FUNCTION public.user_templo(uuid)            TO authenticated;
-GRANT EXECUTE ON FUNCTION public.is_super_admin(uuid)         TO authenticated;
-GRANT EXECUTE ON FUNCTION public.has_role(uuid, app_role)     TO authenticated;
-GRANT EXECUTE ON FUNCTION public.can_write_templo(uuid, uuid) TO authenticated;
--- + service_role nas mesmas funções
-```
-
-(Essas funções são `SECURITY DEFINER` e apenas respondem "sim/não" sobre o próprio usuário — conceder `EXECUTE` a `authenticated` é o uso previsto e não expõe dados.)
-
-### 2. Blindagem no aplicativo (independe do passo 1)
-
-Para que o app funcione mesmo enquanto o SQL não é aplicado, mover as leituras críticas para server functions autenticadas (que já funcionam):
-
-- **Nova server function `getMediumDetail`** — retorna o médium, histórico, trino, campos e valores personalizados, além de uma **URL assinada da foto** gerada no backend. A ficha (`app.mediuns.$id.index.tsx`) passa a consumi-la, com estado de erro visível em vez de "Carregando…" infinito.
-- **Nova server function `getMediunsList`** — alimenta a listagem `/app/mediuns` (hoje também 403).
-- **Nova server function `getBrandingUrls`** — devolve URLs assinadas do logo global (`app-branding`) e do logo do templo (`templos-logos`); `useBrandingLogo` e o avatar do `AppShell` passam a usá-la, restaurando as fotos.
-- Todas validam o vínculo do usuário com o templo antes de retornar qualquer coisa (mesmo padrão já usado em `mediums.functions.ts`).
-
-### 3. Anti-tela-branca
-
-Adicionar tratamento de erro nas telas afetadas: se a leitura falhar, exibir mensagem com o motivo e botão "Tentar novamente", em vez de travar em "Carregando…".
+- Na tela de **edição/cadastro** do médium: um seletor de arquivo "Emissão" aceitando `.pdf, .jpg, .jpeg` (limite de 8 MB), mostrando o nome do arquivo já enviado e opção de substituir ou remover.
+- Na tela de **visualização** da ficha: uma linha "Emissão" com botão de download/abrir. Sem arquivo, mostra "—".
+- O arquivo fica no bucket privado `mediuns-docs`, organizado por templo (`{templo_id}/emissoes/...`), e o link de download é uma URL assinada gerada no servidor.
 
 ## Detalhes técnicos
 
-- Novos arquivos: `src/lib/mediuns-read.functions.ts`, `src/lib/branding.functions.ts` (apenas declarações `createServerFn`, helpers em `.server.ts` correspondentes, conforme a regra de splitting do TanStack).
-- Arquivos alterados: `src/routes/app.mediuns.$id.index.tsx`, `src/routes/app.mediuns.index.tsx`, `src/lib/branding.ts`, `src/components/AppShell.tsx`.
-- Script SQL salvo em `/mnt/documents/fix-grants-rls.sql` para você executar no SQL Editor.
-- Validação: navegar no preview autenticado até a listagem e a ficha de um médium e confirmar render + foto.
+1. **Banco (migração)**: adicionar em `public.mediuns` as colunas `emissao_path text` e `emissao_nome text` (nulláveis).
+2. **Escrita** (`src/lib/mediums.functions.ts` → `saveMediumRecord`): aceitar um campo opcional `emissao` (nome, contentType, base64) e `removerEmissao`. Validar tipo (`application/pdf`, `image/jpeg`) e tamanho (8 MB), fazer upload via `supabaseAdmin` no bucket `mediuns-docs` e gravar `emissao_path`/`emissao_nome`.
+3. **Leitura** (`src/lib/mediuns-read.server.ts` → `readMediumDetail`): gerar `emissaoUrl` assinada (1h) a partir de `emissao_path` e retornar junto com `emissaoNome`.
+4. **UI**:
+   - `src/routes/app.mediuns.$id.edit.tsx`: input de arquivo, preview do nome atual, botão remover, conversão para base64 no envio (mesmo padrão já usado para a foto).
+   - `src/routes/app.mediuns.$id.index.tsx`: seção/linha "Emissão" com link de download quando houver arquivo.
+
+Todas as operações continuam passando pelas server functions autenticadas (validando o vínculo do usuário com o templo), evitando os bloqueios de RLS do banco externo.
