@@ -45,6 +45,24 @@ export async function signedUrl(bucket: string, path: string | null | undefined)
   return data?.signedUrl ?? null;
 }
 
+export async function readEmissao(mediunId: string) {
+  const { data } = await supabaseAdmin
+    .from("anexos")
+    .select("id, nome, storage_path, mime_type, created_at")
+    .eq("mediun_id", mediunId)
+    .like("storage_path", "%/emissoes/%")
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const row = ((data ?? [])[0] ?? null) as
+    | { id: string; nome: string; storage_path: string; mime_type: string | null }
+    | null;
+  if (!row) return { emissaoNome: null as string | null, emissaoUrl: null as string | null };
+  return {
+    emissaoNome: row.nome,
+    emissaoUrl: await signedUrl("mediuns-docs", row.storage_path),
+  };
+}
+
 export async function listMediuns(userId: string, temploId: string) {
   await assertTemploAccess(userId, temploId);
   const { data, error } = await supabaseAdmin
@@ -69,6 +87,8 @@ export async function readMediumDetail(userId: string, id: string) {
   await assertTemploAccess(userId, row.templo_id);
 
   const fotoUrl = await signedUrl("mediuns-fotos", row.foto_path);
+  const emissao = await readEmissao(id);
+
 
   let trinoNome: string | null = null;
   if (row.trino_id) {
@@ -102,6 +122,9 @@ export async function readMediumDetail(userId: string, id: string) {
   return {
     medium: JSON.parse(JSON.stringify(row)) as Record<string, string | number | boolean | null>,
     fotoUrl,
+    emissaoUrl: emissao.emissaoUrl,
+    emissaoNome: emissao.emissaoNome,
+
     trinoNome,
     historico: (historico ?? []) as Array<{ id: string; acao: string; created_at: string }>,
     customFields: JSON.parse(JSON.stringify(customFields ?? [])) as Array<Record<string, string | number | boolean | null>>,
@@ -152,4 +175,16 @@ export async function readBrandingUrls(userId: string) {
   }
 
   return { appLogoUrl, temploLogoUrl };
+}
+
+export async function readMediumTemploId(id: string): Promise<string> {
+  const { data, error } = await supabaseAdmin
+    .from("mediuns")
+    .select("templo_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const row = data as { templo_id: string } | null;
+  if (!row) throw new Error("Médium não encontrado.");
+  return row.templo_id;
 }

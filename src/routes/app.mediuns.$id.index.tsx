@@ -4,7 +4,7 @@ import { getMediumDetail, deleteMediumRecord } from "@/lib/mediuns-read.function
 import { useSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, ArrowLeft, Trash2 } from "lucide-react";
+import { Pencil, ArrowLeft, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import type { CustomField } from "@/components/CustomFieldsManager";
 import { classesElevacaoFor } from "@/lib/medium-fields";
@@ -33,6 +33,8 @@ function MediumDetail() {
   const nav = useNavigate();
   const [m, setM] = useState<Row | null>(null);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  const [emissaoUrl, setEmissaoUrl] = useState<string | null>(null);
+  const [emissaoNome, setEmissaoNome] = useState<string | null>(null);
   const [historico, setHistorico] = useState<Array<{ id: string; acao: string; created_at: string }>>([]);
   const [trinoNome, setTrinoNome] = useState<string | null>(null);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
@@ -45,6 +47,8 @@ function MediumDetail() {
       const res = await getMediumDetail({ data: { id } });
       setM(res.medium as unknown as Row);
       setFotoUrl(res.fotoUrl ?? null);
+      setEmissaoUrl(res.emissaoUrl ?? null);
+      setEmissaoNome(res.emissaoNome ?? null);
       setTrinoNome(res.trinoNome ?? null);
       setHistorico(res.historico ?? []);
       setCustomFields((res.customFields ?? []) as unknown as CustomField[]);
@@ -230,6 +234,21 @@ function MediumDetail() {
           )}
 
           <Card>
+            <CardHeader><CardTitle className="text-base">Emissão</CardTitle></CardHeader>
+            <CardContent>
+              {emissaoUrl ? (
+                <a href={emissaoUrl} target="_blank" rel="noreferrer" download>
+                  <Button variant="outline" size="sm">
+                    <Download className="w-4 h-4 mr-1" /> {emissaoNome ?? "Baixar emissão"}
+                  </Button>
+                </a>
+              ) : (
+                <p className="text-sm text-muted-foreground">—</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader><CardTitle className="text-base">Dados complementares</CardTitle></CardHeader>
             <CardContent className="grid md:grid-cols-3 gap-3">
               {info("Data da última classificação", fmtDate(m.data_ultima_classificacao))}
@@ -244,6 +263,7 @@ function MediumDetail() {
               {m.sexo === "feminino" && (m.falange_missionaria === "Yuricy" || m.falange_missionaria === "Yuricy Lua") && info("Janda", m.janda)}
             </CardContent>
           </Card>
+
 
 
           {customFields.length > 0 && (

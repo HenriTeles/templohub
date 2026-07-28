@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
 import { useSession } from "@/lib/session";
 import { saveMediumRecord } from "@/lib/mediums.functions";
+import { getMediumEmissao } from "@/lib/mediuns-read.functions";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,7 +69,11 @@ function EditMedium() {
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [foto, setFoto] = useState<File | null>(null);
+  const [emissao, setEmissao] = useState<File | null>(null);
+  const [removerEmissao, setRemoverEmissao] = useState(false);
+  const [emissaoAtual, setEmissaoAtual] = useState<{ emissaoUrl: string | null; emissaoNome: string | null } | null>(null);
   const saveMedium = useServerFn(saveMediumRecord);
+  const loadEmissao = useServerFn(getMediumEmissao);
 
   const loadedIdRef = useRef<string | null>(null);
 
@@ -99,8 +104,14 @@ function EditMedium() {
           if (v.valor != null) map[v.field_id] = v.valor;
         }
         setCustomValues(map);
+        try {
+          setEmissaoAtual(await loadEmissao({ data: { id } }));
+        } catch {
+          setEmissaoAtual(null);
+        }
       }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [s.templo?.id, id, isNew]);
 
   const set = (k: string) => (v: string | boolean | null) =>
@@ -157,6 +168,8 @@ function EditMedium() {
           payload,
           customValues,
           foto: foto ? await fileToBase64Payload(foto) : null,
+          emissao: emissao ? await fileToBase64Payload(emissao) : null,
+          removerEmissao,
         },
       });
       const savedId = result.id;
@@ -199,6 +212,37 @@ function EditMedium() {
               <Label>Foto</Label>
               <Input type="file" accept="image/*" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} />
             </div>
+            <div className="md:col-span-2 space-y-1.5">
+              <Label>Emissão (PDF, JPG ou JPEG)</Label>
+              <Input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"
+                onChange={(e) => {
+                  setEmissao(e.target.files?.[0] ?? null);
+                  setRemoverEmissao(false);
+                }}
+              />
+              {emissaoAtual?.emissaoUrl && !emissao && (
+                <div className="flex items-center gap-3 text-sm">
+                  <a
+                    href={emissaoAtual.emissaoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline break-all"
+                  >
+                    {emissaoAtual.emissaoNome ?? "Baixar emissão"}
+                  </a>
+                  <label className="flex items-center gap-1.5 text-muted-foreground">
+                    <Checkbox
+                      checked={removerEmissao}
+                      onCheckedChange={(v) => setRemoverEmissao(v === true)}
+                    />
+                    Remover
+                  </label>
+                </div>
+              )}
+            </div>
+
             {field("nome_completo", "Nome completo")}
             <div className="space-y-1.5">
               <Label>Gênero</Label>
