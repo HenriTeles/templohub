@@ -199,6 +199,37 @@ function EditMedium() {
               <Label>Foto</Label>
               <Input type="file" accept="image/*" onChange={(e) => setFoto(e.target.files?.[0] ?? null)} />
             </div>
+            <div className="md:col-span-2 space-y-1.5">
+              <Label>Emissão (PDF, JPG ou JPEG)</Label>
+              <Input
+                type="file"
+                accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"
+                onChange={(e) => {
+                  setEmissao(e.target.files?.[0] ?? null);
+                  setRemoverEmissao(false);
+                }}
+              />
+              {emissaoAtual?.emissaoUrl && !emissao && (
+                <div className="flex items-center gap-3 text-sm">
+                  <a
+                    href={emissaoAtual.emissaoUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-primary underline break-all"
+                  >
+                    {emissaoAtual.emissaoNome ?? "Baixar emissão"}
+                  </a>
+                  <label className="flex items-center gap-1.5 text-muted-foreground">
+                    <Checkbox
+                      checked={removerEmissao}
+                      onCheckedChange={(v) => setRemoverEmissao(v === true)}
+                    />
+                    Remover
+                  </label>
+                </div>
+              )}
+            </div>
+
             {field("nome_completo", "Nome completo")}
             <div className="space-y-1.5">
               <Label>Gênero</Label>
