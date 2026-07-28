@@ -32,3 +32,13 @@ export const getBrandingUrls = createServerFn({ method: "POST" })
     const { readBrandingUrls } = await import("./mediuns-read.server");
     return readBrandingUrls(context.userId);
   });
+
+export const getMediumEmissao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { readEmissao, readMediumTemploId, assertTemploAccess } = await import("./mediuns-read.server");
+    const temploId = await readMediumTemploId(data.id);
+    await assertTemploAccess(context.userId, temploId);
+    return readEmissao(data.id);
+  });

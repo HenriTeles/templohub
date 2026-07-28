@@ -176,3 +176,15 @@ export async function readBrandingUrls(userId: string) {
 
   return { appLogoUrl, temploLogoUrl };
 }
+
+export async function readMediumTemploId(id: string): Promise<string> {
+  const { data, error } = await supabaseAdmin
+    .from("mediuns")
+    .select("templo_id")
+    .eq("id", id)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  const row = data as { templo_id: string } | null;
+  if (!row) throw new Error("Médium não encontrado.");
+  return row.templo_id;
+}
