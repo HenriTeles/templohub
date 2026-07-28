@@ -68,7 +68,11 @@ function EditMedium() {
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [foto, setFoto] = useState<File | null>(null);
+  const [emissao, setEmissao] = useState<File | null>(null);
+  const [removerEmissao, setRemoverEmissao] = useState(false);
+  const [emissaoAtual, setEmissaoAtual] = useState<{ emissaoUrl: string | null; emissaoNome: string | null } | null>(null);
   const saveMedium = useServerFn(saveMediumRecord);
+  const loadEmissao = useServerFn(getMediumEmissao);
 
   const loadedIdRef = useRef<string | null>(null);
 
