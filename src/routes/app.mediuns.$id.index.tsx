@@ -4,7 +4,7 @@ import { getMediumDetail, deleteMediumRecord } from "@/lib/mediuns-read.function
 import { useSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, ArrowLeft, Trash2 } from "lucide-react";
+import { Pencil, ArrowLeft, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import type { CustomField } from "@/components/CustomFieldsManager";
 import { classesElevacaoFor } from "@/lib/medium-fields";
@@ -33,6 +33,8 @@ function MediumDetail() {
   const nav = useNavigate();
   const [m, setM] = useState<Row | null>(null);
   const [fotoUrl, setFotoUrl] = useState<string | null>(null);
+  const [emissaoUrl, setEmissaoUrl] = useState<string | null>(null);
+  const [emissaoNome, setEmissaoNome] = useState<string | null>(null);
   const [historico, setHistorico] = useState<Array<{ id: string; acao: string; created_at: string }>>([]);
   const [trinoNome, setTrinoNome] = useState<string | null>(null);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
