@@ -38,30 +38,60 @@ export async function assertTemploAccess(userId: string, temploId: string): Prom
   throw new Error("Você não tem acesso a este templo.");
 }
 
-export async function signedUrl(bucket: string, path: string | null | undefined): Promise<string | null> {
+export async function signedUrl(
+  bucket: string,
+  path: string | null | undefined,
+  options?: { download?: string | boolean },
+): Promise<string | null> {
   if (!path) return null;
-  const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, 3600);
-  if (error) return null;
+  const { data, error } = await supabaseAdmin.storage
+    .from(bucket)
+    .createSignedUrl(path, 3600, options?.download ? { download: options.download } : undefined);
+  if (error) {
+    console.error("[storage] createSignedUrl falhou", bucket, path, error.message);
+    return null;
+  }
   return data?.signedUrl ?? null;
 }
 
-export async function readEmissao(mediunId: string) {
-  const { data } = await supabaseAdmin
+export async function readEmissao(mediunId: string, temploIdHint?: string) {
+  const empty = { emissaoNome: null as string | null, emissaoUrl: null as string | null };
+
+  const { data, error } = await supabaseAdmin
     .from("anexos")
     .select("id, nome, storage_path, mime_type, created_at")
     .eq("mediun_id", mediunId)
-    .like("storage_path", "%/emissoes/%")
-    .order("created_at", { ascending: false })
-    .limit(1);
-  const row = ((data ?? [])[0] ?? null) as
-    | { id: string; nome: string; storage_path: string; mime_type: string | null }
-    | null;
-  if (!row) return { emissaoNome: null as string | null, emissaoUrl: null as string | null };
-  return {
-    emissaoNome: row.nome,
-    emissaoUrl: await signedUrl("mediuns-docs", row.storage_path),
-  };
+    .order("created_at", { ascending: false });
+  if (error) console.error("[emissao] consulta anexos falhou:", error.message);
+
+  const rows = (data ?? []) as Array<{ nome: string; storage_path: string }>;
+  const row = rows.find((r) => r.storage_path.includes("/emissoes/")) ?? rows[0] ?? null;
+
+  if (row) {
+    const url = await signedUrl("mediuns-docs", row.storage_path, { download: row.nome });
+    if (url) return { emissaoNome: row.nome, emissaoUrl: url };
+  }
+
+  // Fallback: procurar o arquivo direto no storage caso o registro em "anexos" falte.
+  const temploId = temploIdHint ?? (await readMediumTemploId(mediunId).catch(() => null));
+  if (!temploId) return empty;
+
+  const prefix = `${temploId}/emissoes/${mediunId}`;
+  const { data: files, error: listError } = await supabaseAdmin.storage
+    .from("mediuns-docs")
+    .list(prefix, { limit: 20, sortBy: { column: "created_at", order: "desc" } });
+  if (listError) {
+    console.error("[emissao] listagem do storage falhou:", listError.message);
+    return empty;
+  }
+  const file = (files ?? []).find((f) => f.name && f.id !== null) ?? (files ?? [])[0];
+  if (!file) return empty;
+
+  const nome = file.name.replace(/^[0-9a-f-]{36}-/i, "");
+  const url = await signedUrl("mediuns-docs", `${prefix}/${file.name}`, { download: nome });
+  return { emissaoNome: nome, emissaoUrl: url };
 }
+
 
 export async function listMediuns(userId: string, temploId: string) {
   await assertTemploAccess(userId, temploId);
@@ -87,7 +117,7 @@ export async function readMediumDetail(userId: string, id: string) {
   await assertTemploAccess(userId, row.templo_id);
 
   const fotoUrl = await signedUrl("mediuns-fotos", row.foto_path);
-  const emissao = await readEmissao(id);
+  const emissao = await readEmissao(id, row.templo_id);
 
 
   let trinoNome: string | null = null;
