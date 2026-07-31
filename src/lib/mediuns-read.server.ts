@@ -117,7 +117,7 @@ export async function readMediumDetail(userId: string, id: string) {
   await assertTemploAccess(userId, row.templo_id);
 
   const fotoUrl = await signedUrl("mediuns-fotos", row.foto_path);
-  const emissao = await readEmissao(id);
+  const emissao = await readEmissao(id, row.templo_id);
 
 
   let trinoNome: string | null = null;
