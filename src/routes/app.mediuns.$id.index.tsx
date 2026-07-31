@@ -1,9 +1,12 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useState } from "react";
-import { getMediumDetail, deleteMediumRecord } from "@/lib/mediuns-read.functions";
+import { getMediumDetail, deleteMediumRecord, uploadMediumEmissao } from "@/lib/mediuns-read.functions";
 import { useSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Pencil, ArrowLeft, Trash2, Download } from "lucide-react";
 import { toast } from "sonner";
 import type { CustomField } from "@/components/CustomFieldsManager";
@@ -27,6 +30,16 @@ type Row = Record<string, unknown> & {
   foto_path: string | null;
 };
 
+async function fileToBase64(file: File) {
+  const bytes = new Uint8Array(await file.arrayBuffer());
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return { name: file.name, contentType: file.type || "application/octet-stream", base64: btoa(binary) };
+}
+
 function MediumDetail() {
   const { id } = useParams({ from: "/app/mediuns/$id/" });
   const s = useSession();
@@ -40,6 +53,9 @@ function MediumDetail() {
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [customValues, setCustomValues] = useState<Record<string, string>>({});
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [emissaoFile, setEmissaoFile] = useState<File | null>(null);
+  const [uploadingEmissao, setUploadingEmissao] = useState(false);
+  const uploadEmissao = useServerFn(uploadMediumEmissao);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -70,6 +86,22 @@ function MediumDetail() {
       nav({ to: "/app/mediuns" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível excluir.");
+    }
+  };
+
+  const saveEmissao = async () => {
+    if (!emissaoFile) return;
+    setUploadingEmissao(true);
+    try {
+      const result = await uploadEmissao({ data: { id, file: await fileToBase64(emissaoFile) } });
+      setEmissaoNome(result.emissaoNome);
+      setEmissaoUrl(result.emissaoUrl);
+      setEmissaoFile(null);
+      toast.success("Emissão salva. O download já está disponível.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível salvar a emissão.");
+    } finally {
+      setUploadingEmissao(false);
     }
   };
 
@@ -251,15 +283,32 @@ function MediumDetail() {
 
           <Card>
             <CardHeader><CardTitle className="text-base">Emissão</CardTitle></CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               {emissaoUrl ? (
-                <a href={emissaoUrl} target="_blank" rel="noreferrer" download>
+                <a href={emissaoUrl} target="_blank" rel="noreferrer" download={emissaoNome ?? true}>
                   <Button variant="outline" size="sm">
                     <Download className="w-4 h-4 mr-1" /> {emissaoNome ?? "Baixar emissão"}
                   </Button>
                 </a>
               ) : (
                 <p className="text-sm text-muted-foreground">—</p>
+              )}
+              {(s.roles.includes("admin") || s.roles.includes("secretario") || s.roles.includes("super_admin")) && (
+                <div className="space-y-2 border-t pt-4">
+                  <Label htmlFor="emissao-upload">{emissaoUrl ? "Substituir emissão" : "Adicionar emissão"}</Label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Input
+                      id="emissao-upload"
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"
+                      onChange={(event) => setEmissaoFile(event.target.files?.[0] ?? null)}
+                    />
+                    <Button type="button" onClick={() => void saveEmissao()} disabled={!emissaoFile || uploadingEmissao}>
+                      {uploadingEmissao ? "Salvando…" : "Salvar emissão"}
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">PDF, JPG ou JPEG, até 8 MB.</p>
+                </div>
               )}
             </CardContent>
           </Card>

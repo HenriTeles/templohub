@@ -92,6 +92,88 @@ export async function readEmissao(mediunId: string, temploIdHint?: string) {
   return { emissaoNome: nome, emissaoUrl: url };
 }
 
+export async function saveMediumEmissao(
+  userId: string,
+  mediunId: string,
+  file: { name: string; contentType: string; base64: string },
+) {
+  const temploId = await readMediumTemploId(mediunId);
+  await assertTemploAccess(userId, temploId);
+
+  const { data: roles, error: roleError } = await supabaseAdmin
+    .from("user_roles")
+    .select("role, templo_id")
+    .eq("user_id", userId);
+  if (roleError) throw new Error(roleError.message);
+  const canWrite = (roles ?? []).some(
+    (row) => row.role === "super_admin" || (["admin", "secretario"].includes(row.role) && row.templo_id === temploId),
+  );
+  if (!canWrite) throw new Error("Você não tem permissão para alterar a emissão deste médium.");
+
+  const contentType = file.contentType.toLowerCase();
+  const validType =
+    contentType === "application/pdf" ||
+    contentType === "image/jpeg" ||
+    contentType === "image/jpg" ||
+    /\.(pdf|jpe?g)$/i.test(file.name);
+  if (!validType) throw new Error("A emissão deve ser um arquivo PDF, JPG ou JPEG.");
+
+  const estimatedBytes = Math.floor((file.base64.length * 3) / 4);
+  if (estimatedBytes > 8 * 1024 * 1024) throw new Error("A emissão deve ter no máximo 8 MB.");
+
+  const binary = atob(file.base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 140) || "emissao.pdf";
+  const storagePath = `${temploId}/emissoes/${mediunId}/${crypto.randomUUID()}-${safeName}`;
+  const { error: uploadError } = await supabaseAdmin.storage
+    .from("mediuns-docs")
+    .upload(storagePath, bytes, { contentType: contentType || "application/octet-stream", upsert: false });
+  if (uploadError) throw new Error(`Não foi possível salvar a emissão: ${uploadError.message}`);
+
+  const { data: attachment, error: attachmentError } = await supabaseAdmin
+    .from("anexos")
+    .insert({
+      templo_id: temploId,
+      mediun_id: mediunId,
+      nome: file.name.slice(0, 180),
+      storage_path: storagePath,
+      mime_type: contentType || null,
+      size_bytes: estimatedBytes,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (attachmentError || !attachment) {
+    await supabaseAdmin.storage.from("mediuns-docs").remove([storagePath]);
+    throw new Error(`Não foi possível registrar a emissão: ${attachmentError?.message ?? "erro desconhecido"}`);
+  }
+
+  const { data: oldRows, error: oldRowsError } = await supabaseAdmin
+    .from("anexos")
+    .select("id, storage_path")
+    .eq("mediun_id", mediunId)
+    .neq("id", attachment.id);
+  if (oldRowsError) console.error("[emissao] não foi possível consultar anexos anteriores:", oldRowsError.message);
+  const previous = (oldRows ?? []).filter((row) => row.storage_path.includes("/emissoes/"));
+  if (previous.length > 0) {
+    const { error: removeError } = await supabaseAdmin.storage
+      .from("mediuns-docs")
+      .remove(previous.map((row) => row.storage_path));
+    if (removeError) console.error("[emissao] não foi possível remover arquivos anteriores:", removeError.message);
+    const { error: deleteError } = await supabaseAdmin
+      .from("anexos")
+      .delete()
+      .in("id", previous.map((row) => row.id));
+    if (deleteError) console.error("[emissao] não foi possível remover registros anteriores:", deleteError.message);
+  }
+
+  const emissaoUrl = await signedUrl("mediuns-docs", storagePath, { download: file.name });
+  if (!emissaoUrl) throw new Error("A emissão foi salva, mas não foi possível gerar o link de download.");
+  return { emissaoNome: file.name, emissaoUrl };
+}
+
 
 export async function listMediuns(userId: string, temploId: string) {
   await assertTemploAccess(userId, temploId);

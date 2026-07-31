@@ -42,3 +42,20 @@ export const getMediumEmissao = createServerFn({ method: "POST" })
     await assertTemploAccess(context.userId, temploId);
     return readEmissao(data.id);
   });
+
+export const uploadMediumEmissao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      id: z.string().uuid(),
+      file: z.object({
+        name: z.string().min(1).max(180),
+        contentType: z.string().min(1).max(120),
+        base64: z.string().min(1),
+      }),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { saveMediumEmissao } = await import("./mediuns-read.server");
+    return saveMediumEmissao(context.userId, data.id, data.file);
+  });
