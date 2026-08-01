@@ -1,7 +1,13 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useState } from "react";
-import { getMediumDetail, deleteMediumRecord, uploadMediumEmissao } from "@/lib/mediuns-read.functions";
+import {
+  completeMediumEmissaoUpload,
+  deleteMediumRecord,
+  getMediumDetail,
+  prepareMediumEmissaoUpload,
+} from "@/lib/mediuns-read.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -30,16 +36,6 @@ type Row = Record<string, unknown> & {
   foto_path: string | null;
 };
 
-async function fileToBase64(file: File) {
-  const bytes = new Uint8Array(await file.arrayBuffer());
-  let binary = "";
-  const chunkSize = 0x8000;
-  for (let index = 0; index < bytes.length; index += chunkSize) {
-    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
-  }
-  return { name: file.name, contentType: file.type || "application/octet-stream", base64: btoa(binary) };
-}
-
 function MediumDetail() {
   const { id } = useParams({ from: "/app/mediuns/$id/" });
   const s = useSession();
@@ -55,7 +51,8 @@ function MediumDetail() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [emissaoFile, setEmissaoFile] = useState<File | null>(null);
   const [uploadingEmissao, setUploadingEmissao] = useState(false);
-  const uploadEmissao = useServerFn(uploadMediumEmissao);
+  const prepareEmissaoUpload = useServerFn(prepareMediumEmissaoUpload);
+  const completeEmissaoUpload = useServerFn(completeMediumEmissaoUpload);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -93,7 +90,25 @@ function MediumDetail() {
     if (!emissaoFile) return;
     setUploadingEmissao(true);
     try {
-      const result = await uploadEmissao({ data: { id, file: await fileToBase64(emissaoFile) } });
+      const contentType = emissaoFile.type || "application/octet-stream";
+      const prepared = await prepareEmissaoUpload({
+        data: { id, file: { name: emissaoFile.name, contentType, size: emissaoFile.size } },
+      });
+      const { error: uploadError } = await supabase.storage
+        .from("mediuns-docs")
+        .uploadToSignedUrl(prepared.path, prepared.token, emissaoFile, { contentType });
+      if (uploadError) throw new Error(`Não foi possível enviar a emissão: ${uploadError.message}`);
+      const result = await completeEmissaoUpload({
+        data: {
+          id,
+          upload: {
+            path: prepared.path,
+            name: emissaoFile.name,
+            contentType,
+            size: emissaoFile.size,
+          },
+        },
+      });
       setEmissaoNome(result.emissaoNome);
       setEmissaoUrl(result.emissaoUrl);
       setEmissaoFile(null);
