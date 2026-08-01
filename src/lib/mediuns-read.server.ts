@@ -174,6 +174,108 @@ export async function saveMediumEmissao(
   return { emissaoNome: file.name, emissaoUrl };
 }
 
+type EmissaoUploadMetadata = {
+  name: string;
+  contentType: string;
+  size: number;
+};
+
+async function assertEmissaoWriteAccess(userId: string, mediunId: string) {
+  const temploId = await readMediumTemploId(mediunId);
+  await assertTemploAccess(userId, temploId);
+  const { data: roles, error } = await supabaseAdmin
+    .from("user_roles")
+    .select("role, templo_id")
+    .eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  const canWrite = (roles ?? []).some(
+    (row) => row.role === "super_admin" || (["admin", "secretario"].includes(row.role) && row.templo_id === temploId),
+  );
+  if (!canWrite) throw new Error("Você não tem permissão para alterar a emissão deste médium.");
+  return temploId;
+}
+
+function validateEmissaoMetadata(file: EmissaoUploadMetadata) {
+  const contentType = file.contentType.toLowerCase();
+  const validType =
+    contentType === "application/pdf" ||
+    contentType === "image/jpeg" ||
+    contentType === "image/jpg" ||
+    /\.(pdf|jpe?g)$/i.test(file.name);
+  if (!validType) throw new Error("A emissão deve ser um arquivo PDF, JPG ou JPEG.");
+  if (file.size > 8 * 1024 * 1024) throw new Error("A emissão deve ter no máximo 8 MB.");
+}
+
+export async function prepareMediumEmissaoUpload(
+  userId: string,
+  mediunId: string,
+  file: EmissaoUploadMetadata,
+) {
+  validateEmissaoMetadata(file);
+  const temploId = await assertEmissaoWriteAccess(userId, mediunId);
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 140) || "emissao.pdf";
+  const path = `${temploId}/emissoes/${mediunId}/${crypto.randomUUID()}-${safeName}`;
+  const { data, error } = await supabaseAdmin.storage.from("mediuns-docs").createSignedUploadUrl(path);
+  if (error || !data?.token) {
+    throw new Error(`Não foi possível preparar o envio da emissão: ${error?.message ?? "erro desconhecido"}`);
+  }
+  return { path, token: data.token };
+}
+
+export async function completeMediumEmissaoUpload(
+  userId: string,
+  mediunId: string,
+  upload: EmissaoUploadMetadata & { path: string },
+) {
+  validateEmissaoMetadata(upload);
+  const temploId = await assertEmissaoWriteAccess(userId, mediunId);
+  const requiredPrefix = `${temploId}/emissoes/${mediunId}/`;
+  if (!upload.path.startsWith(requiredPrefix) || upload.path.includes("..")) {
+    throw new Error("Caminho de emissão inválido.");
+  }
+
+  const fileName = upload.path.slice(requiredPrefix.length);
+  const { data: storedFiles, error: storedError } = await supabaseAdmin.storage
+    .from("mediuns-docs")
+    .list(`${temploId}/emissoes/${mediunId}`, { search: fileName, limit: 10 });
+  if (storedError || !(storedFiles ?? []).some((file) => file.name === fileName)) {
+    throw new Error("O arquivo da emissão não foi encontrado após o envio.");
+  }
+
+  const { data: attachment, error: attachmentError } = await supabaseAdmin
+    .from("anexos")
+    .insert({
+      templo_id: temploId,
+      mediun_id: mediunId,
+      nome: upload.name,
+      storage_path: upload.path,
+      mime_type: upload.contentType.toLowerCase(),
+      size_bytes: upload.size,
+      created_by: userId,
+    })
+    .select("id")
+    .single();
+  if (attachmentError || !attachment) {
+    await supabaseAdmin.storage.from("mediuns-docs").remove([upload.path]);
+    throw new Error(`Não foi possível registrar a emissão: ${attachmentError?.message ?? "erro desconhecido"}`);
+  }
+
+  const { data: oldRows } = await supabaseAdmin
+    .from("anexos")
+    .select("id, storage_path")
+    .eq("mediun_id", mediunId)
+    .neq("id", attachment.id);
+  const previous = (oldRows ?? []).filter((row) => row.storage_path.includes("/emissoes/"));
+  if (previous.length > 0) {
+    await supabaseAdmin.storage.from("mediuns-docs").remove(previous.map((row) => row.storage_path));
+    await supabaseAdmin.from("anexos").delete().in("id", previous.map((row) => row.id));
+  }
+
+  const emissaoUrl = await signedUrl("mediuns-docs", upload.path, { download: upload.name });
+  if (!emissaoUrl) throw new Error("A emissão foi salva, mas não foi possível gerar o link de download.");
+  return { emissaoNome: upload.name, emissaoUrl };
+}
+
 
 export async function listMediuns(userId: string, temploId: string) {
   await assertTemploAccess(userId, temploId);

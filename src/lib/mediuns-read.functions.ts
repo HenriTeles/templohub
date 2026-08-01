@@ -43,7 +43,7 @@ export const getMediumEmissao = createServerFn({ method: "POST" })
     return readEmissao(data.id);
   });
 
-export const uploadMediumEmissao = createServerFn({ method: "POST" })
+export const prepareMediumEmissaoUpload = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) =>
     z.object({
@@ -51,11 +51,29 @@ export const uploadMediumEmissao = createServerFn({ method: "POST" })
       file: z.object({
         name: z.string().min(1).max(180),
         contentType: z.string().min(1).max(120),
-        base64: z.string().min(1),
+        size: z.number().int().positive().max(8 * 1024 * 1024),
       }),
     }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    const { saveMediumEmissao } = await import("./mediuns-read.server");
-    return saveMediumEmissao(context.userId, data.id, data.file);
+    const { prepareMediumEmissaoUpload: prepareUpload } = await import("./mediuns-read.server");
+    return prepareUpload(context.userId, data.id, data.file);
+  });
+
+export const completeMediumEmissaoUpload = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({
+      id: z.string().uuid(),
+      upload: z.object({
+        path: z.string().min(1).max(500),
+        name: z.string().min(1).max(180),
+        contentType: z.string().min(1).max(120),
+        size: z.number().int().positive().max(8 * 1024 * 1024),
+      }),
+    }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { completeMediumEmissaoUpload: completeUpload } = await import("./mediuns-read.server");
+    return completeUpload(context.userId, data.id, data.upload);
   });
