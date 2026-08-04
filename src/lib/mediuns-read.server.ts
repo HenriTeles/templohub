@@ -44,14 +44,41 @@ export async function signedUrl(
   options?: { download?: string | boolean },
 ): Promise<string | null> {
   if (!path) return null;
+  const normalizedPath = normalizeStoragePath(bucket, path);
+  if (!normalizedPath) return null;
   const { data, error } = await supabaseAdmin.storage
     .from(bucket)
-    .createSignedUrl(path, 3600, options?.download ? { download: options.download } : undefined);
+    .createSignedUrl(normalizedPath, 3600, options?.download ? { download: options.download } : undefined);
   if (error) {
-    console.error("[storage] createSignedUrl falhou", bucket, path, error.message);
+    console.error("[storage] createSignedUrl falhou", bucket, normalizedPath, error.message);
     return null;
   }
   return data?.signedUrl ?? null;
+}
+
+function normalizeStoragePath(bucket: string, rawPath: string): string | null {
+  const trimmed = rawPath.trim();
+  if (!trimmed) return null;
+
+  let path = trimmed;
+  try {
+    if (/^https?:\/\//i.test(path)) {
+      const pathname = decodeURIComponent(new URL(path).pathname);
+      const markers = [
+        `/storage/v1/object/sign/${bucket}/`,
+        `/storage/v1/object/public/${bucket}/`,
+        `/storage/v1/object/${bucket}/`,
+      ];
+      const marker = markers.find((candidate) => pathname.includes(candidate));
+      if (marker) path = pathname.slice(pathname.indexOf(marker) + marker.length);
+    }
+  } catch {
+    return null;
+  }
+
+  path = path.split("?")[0]?.replace(/^\/+/, "") ?? "";
+  if (path.startsWith(`${bucket}/`)) path = path.slice(bucket.length + 1);
+  return path || null;
 }
 
 export async function readEmissao(mediunId: string, temploIdHint?: string) {
@@ -65,9 +92,11 @@ export async function readEmissao(mediunId: string, temploIdHint?: string) {
   if (error) console.error("[emissao] consulta anexos falhou:", error.message);
 
   const rows = (data ?? []) as Array<{ nome: string; storage_path: string }>;
-  const row = rows.find((r) => r.storage_path.includes("/emissoes/")) ?? rows[0] ?? null;
-
-  if (row) {
+  const candidates = [
+    ...rows.filter((row) => row.storage_path.includes("/emissoes/")),
+    ...rows.filter((row) => !row.storage_path.includes("/emissoes/")),
+  ];
+  for (const row of candidates) {
     const url = await signedUrl("mediuns-docs", row.storage_path, { download: row.nome });
     if (url) return { emissaoNome: row.nome, emissaoUrl: url };
   }

@@ -51,13 +51,17 @@ function MediumDetail() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [emissaoFile, setEmissaoFile] = useState<File | null>(null);
   const [uploadingEmissao, setUploadingEmissao] = useState(false);
+  const [openingEmissao, setOpeningEmissao] = useState(false);
+  const getDetail = useServerFn(getMediumDetail);
+  const deleteRecord = useServerFn(deleteMediumRecord);
+  const getEmissao = useServerFn(getMediumEmissao);
   const prepareEmissaoUpload = useServerFn(prepareMediumEmissaoUpload);
   const completeEmissaoUpload = useServerFn(completeMediumEmissaoUpload);
 
   const load = useCallback(async () => {
     setLoadError(null);
     try {
-      const res = await getMediumDetail({ data: { id } });
+      const res = await getDetail({ data: { id } });
       setM(res.medium as unknown as Row);
       setFotoUrl(res.fotoUrl ?? null);
       setEmissaoUrl(res.emissaoUrl ?? null);
@@ -69,7 +73,7 @@ function MediumDetail() {
     } catch (err) {
       setLoadError(err instanceof Error ? err.message : "Não foi possível carregar a ficha do médium.");
     }
-  }, [id]);
+  }, [getDetail, id]);
 
   useEffect(() => {
     void load();
@@ -78,11 +82,26 @@ function MediumDetail() {
   const remove = async () => {
     if (!confirm("Excluir este médium?")) return;
     try {
-      await deleteMediumRecord({ data: { id } });
+      await deleteRecord({ data: { id } });
       toast.success("Removido.");
       nav({ to: "/app/mediuns" });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível excluir.");
+    }
+  };
+
+  const openEmissao = async () => {
+    setOpeningEmissao(true);
+    try {
+      const fresh = await getEmissao({ data: { id } });
+      if (!fresh.emissaoUrl) throw new Error("A emissão não foi encontrada no armazenamento.");
+      setEmissaoNome(fresh.emissaoNome);
+      setEmissaoUrl(fresh.emissaoUrl);
+      window.open(fresh.emissaoUrl, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível abrir a emissão.");
+    } finally {
+      setOpeningEmissao(false);
     }
   };
 
@@ -300,11 +319,9 @@ function MediumDetail() {
             <CardHeader><CardTitle className="text-base">Emissão</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {emissaoUrl ? (
-                <a href={emissaoUrl} target="_blank" rel="noreferrer" download={emissaoNome ?? true}>
-                  <Button variant="outline" size="sm">
+                <Button type="button" variant="outline" size="sm" onClick={() => void openEmissao()} disabled={openingEmissao}>
                     <Download className="w-4 h-4 mr-1" /> {emissaoNome ?? "Baixar emissão"}
-                  </Button>
-                </a>
+                </Button>
               ) : (
                 <p className="text-sm text-muted-foreground">—</p>
               )}
