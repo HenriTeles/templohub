@@ -47,4 +47,11 @@ GRANT EXECUTE ON FUNCTION public.can_write_templo(uuid, uuid) TO authenticated, 
 GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.create_templo_request(text, text, text) TO authenticated, service_role;
 
+-- 4) O vínculo do usuário com o templo é administrado apenas por rotinas
+--    privilegiadas. Usuários finais podem editar seus dados básicos, mas não
+--    podem trocar profiles.templo_id e atravessar o isolamento multi-tenant.
+REVOKE UPDATE ON TABLE public.profiles FROM authenticated;
+GRANT UPDATE (nome, email) ON TABLE public.profiles TO authenticated;
+GRANT ALL ON TABLE public.profiles TO service_role;
+
 COMMIT;
