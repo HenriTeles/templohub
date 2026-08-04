@@ -33,11 +33,18 @@ REVOKE ALL ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated
 REVOKE ALL ON FUNCTION public.set_updated_at() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.rls_auto_enable() FROM PUBLIC, anon, authenticated;
 
--- 3) Helpers necessários para RLS e onboarding (mantidos de propósito)
-GRANT EXECUTE ON FUNCTION public.is_super_admin(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.user_templo(uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.can_write_templo(uuid, uuid) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.create_templo_request(text, text, text) TO authenticated;
+-- 3) Helpers necessários para RLS e onboarding (mantidos de propósito),
+--    mas sem acesso anônimo.
+REVOKE ALL ON FUNCTION public.is_super_admin(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.user_templo(uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.can_write_templo(uuid, uuid) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.has_role(uuid, public.app_role) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.create_templo_request(text, text, text) FROM PUBLIC, anon;
+
+GRANT EXECUTE ON FUNCTION public.is_super_admin(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.user_templo(uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.can_write_templo(uuid, uuid) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.has_role(uuid, public.app_role) TO authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.create_templo_request(text, text, text) TO authenticated, service_role;
 
 COMMIT;
