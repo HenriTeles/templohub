@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   completeMediumEmissaoUpload,
   deleteMediumRecord,
+  getMediumEmissao,
   getMediumDetail,
   prepareMediumEmissaoUpload,
 } from "@/lib/mediuns-read.functions";
@@ -97,7 +98,7 @@ function MediumDetail() {
       if (!fresh.emissaoUrl) throw new Error("A emissão não foi encontrada no armazenamento.");
       setEmissaoNome(fresh.emissaoNome);
       setEmissaoUrl(fresh.emissaoUrl);
-      window.open(fresh.emissaoUrl, "_blank", "noopener,noreferrer");
+      window.location.assign(fresh.emissaoUrl);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Não foi possível abrir a emissão.");
     } finally {
