@@ -263,12 +263,15 @@ export async function completeMediumEmissaoUpload(
     throw new Error("Caminho de emissão inválido.");
   }
 
-  const fileName = upload.path.slice(requiredPrefix.length);
-  const { data: storedFiles, error: storedError } = await supabaseAdmin.storage
+  const { data: downloadedFile, error: downloadError } = await supabaseAdmin.storage
     .from("mediuns-docs")
-    .list(`${temploId}/emissoes/${mediunId}`, { search: fileName, limit: 10 });
-  if (storedError || !(storedFiles ?? []).some((file) => file.name === fileName)) {
-    throw new Error("O arquivo da emissão não foi encontrado após o envio.");
+    .download(upload.path);
+  if (downloadError || !downloadedFile) {
+    throw new Error(`O arquivo da emissão não foi confirmado após o envio: ${downloadError?.message ?? "arquivo ausente"}`);
+  }
+  if (downloadedFile.size !== upload.size) {
+    await supabaseAdmin.storage.from("mediuns-docs").remove([upload.path]);
+    throw new Error("O arquivo enviado está incompleto. Selecione-o novamente e tente salvar.");
   }
 
   const { data: attachment, error: attachmentError } = await supabaseAdmin

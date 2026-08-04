@@ -129,8 +129,12 @@ function MediumDetail() {
           },
         },
       });
-      setEmissaoNome(result.emissaoNome);
-      setEmissaoUrl(result.emissaoUrl);
+      const confirmed = await getEmissao({ data: { id } });
+      if (!confirmed.emissaoUrl) {
+        throw new Error("O arquivo foi enviado, mas não pôde ser confirmado para download.");
+      }
+      setEmissaoNome(confirmed.emissaoNome ?? result.emissaoNome);
+      setEmissaoUrl(confirmed.emissaoUrl);
       setEmissaoFile(null);
       toast.success("Emissão salva. O download já está disponível.");
     } catch (err) {
