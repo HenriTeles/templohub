@@ -92,7 +92,7 @@ export const getCurrentSessionData = createServerFn({ method: "GET" })
           await supabase.from("profiles").delete().eq("id", oldProfile.id);
         }
         return true;
-      });
+      })();
       restoredFromOldProfile = restored === true;
     }
 
