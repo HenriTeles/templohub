@@ -54,11 +54,29 @@ function MediumDetail() {
   const [emissaoFile, setEmissaoFile] = useState<File | null>(null);
   const [uploadingEmissao, setUploadingEmissao] = useState(false);
   const [openingEmissao, setOpeningEmissao] = useState(false);
+  const [removingEmissao, setRemovingEmissao] = useState(false);
   const getDetail = useServerFn(getMediumDetail);
   const deleteRecord = useServerFn(deleteMediumRecord);
   const getEmissao = useServerFn(getMediumEmissao);
   const prepareEmissaoUpload = useServerFn(prepareMediumEmissaoUpload);
   const completeEmissaoUpload = useServerFn(completeMediumEmissaoUpload);
+  const removeEmissaoFn = useServerFn(removeMediumEmissao);
+
+  const removerEmissao = async () => {
+    if (!confirm("Remover a emissão deste médium?")) return;
+    setRemovingEmissao(true);
+    try {
+      await removeEmissaoFn({ data: { id } });
+      setEmissaoUrl(null);
+      setEmissaoNome(null);
+      setEmissaoFile(null);
+      toast.success("Emissão removida.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível remover a emissão.");
+    } finally {
+      setRemovingEmissao(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoadError(null);
