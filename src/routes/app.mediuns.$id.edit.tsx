@@ -226,7 +226,6 @@ function EditMedium() {
             : "Falha ao salvar. Verifique sua conexão e tente novamente.";
       toast.error(message || "Falha ao salvar. Tente novamente.");
       console.error("[mediuns/edit] save failed", err);
-    }
     } finally {
       setBusy(false);
     }
