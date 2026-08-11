@@ -218,7 +218,15 @@ function EditMedium() {
       toast.success(isNew ? "Médium cadastrado." : "Alterações salvas.");
       nav({ to: "/app/mediuns/$id", params: { id: savedId } });
     } catch (err) {
-      toast.error((err as Error).message);
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : "Falha ao salvar. Verifique sua conexão e tente novamente.";
+      toast.error(message || "Falha ao salvar. Tente novamente.");
+      console.error("[mediuns/edit] save failed", err);
+    }
     } finally {
       setBusy(false);
     }
