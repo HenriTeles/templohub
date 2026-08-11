@@ -264,12 +264,37 @@ function EditMedium() {
               <Label>Emissão (PDF, JPG ou JPEG)</Label>
               <Input
                 type="file"
-                accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"
+                accept="application/pdf,image/jpeg,.pdf,.jpg,.jpeg"
                 onChange={(e) => {
-                  setEmissao(e.target.files?.[0] ?? null);
+                  const file = e.target.files?.[0] ?? null;
+                  if (file) {
+                    const nome = file.name.toLowerCase();
+                    const tipoOk =
+                      file.type === "application/pdf" ||
+                      file.type === "image/jpeg" ||
+                      /\.(pdf|jpe?g)$/.test(nome);
+                    if (!tipoOk) {
+                      toast.error("Formato inválido. Envie um arquivo PDF, JPG ou JPEG.");
+                      e.target.value = "";
+                      setEmissao(null);
+                      return;
+                    }
+                    if (file.size > 8 * 1024 * 1024) {
+                      toast.error("O arquivo deve ter no máximo 8 MB.");
+                      e.target.value = "";
+                      setEmissao(null);
+                      return;
+                    }
+                  }
+                  setEmissao(file);
                   setRemoverEmissao(false);
                 }}
               />
+              {emissao && (
+                <p className="text-xs text-muted-foreground break-all">
+                  Selecionado: {emissao.name} — toque em “Salvar” para enviar.
+                </p>
+              )}
               {emissaoAtual?.emissaoUrl && !emissao && (
                 <div className="flex items-center gap-3 text-sm">
                   <a
