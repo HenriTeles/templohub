@@ -77,3 +77,12 @@ export const completeMediumEmissaoUpload = createServerFn({ method: "POST" })
     const { completeMediumEmissaoUpload: completeUpload } = await import("./mediuns-read.server");
     return completeUpload(context.userId, data.id, data.upload);
   });
+
+export const removeMediumEmissao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: z.string().uuid() }).parse(input))
+  .handler(async ({ data, context }) => {
+    const { deleteMediumEmissao } = await import("./mediuns-read.server");
+    return deleteMediumEmissao(context.userId, data.id);
+  });
+

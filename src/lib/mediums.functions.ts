@@ -18,15 +18,8 @@ export const saveMediumRecord = createServerFn({ method: "POST" })
             base64: z.string().min(1),
           })
           .nullable(),
-        emissao: z
-          .object({
-            name: z.string().min(1).max(180),
-            contentType: z.string().min(1).max(120),
-            base64: z.string().min(1),
-          })
-          .nullable()
-          .default(null),
-        removerEmissao: z.boolean().default(false),
+      })
+
       })
       .parse(input),
   )

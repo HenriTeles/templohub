@@ -308,6 +308,34 @@ export async function completeMediumEmissaoUpload(
   return { emissaoNome: upload.name, emissaoUrl };
 }
 
+export async function deleteMediumEmissao(userId: string, mediunId: string) {
+  const temploId = await assertEmissaoWriteAccess(userId, mediunId);
+  const { data: rows, error } = await supabaseAdmin
+    .from("anexos")
+    .select("id, storage_path")
+    .eq("mediun_id", mediunId);
+  if (error) throw new Error(error.message);
+  const alvo = (rows ?? []).filter((row) => row.storage_path.includes("/emissoes/"));
+  if (alvo.length > 0) {
+    await supabaseAdmin.storage.from("mediuns-docs").remove(alvo.map((row) => row.storage_path));
+    const { error: delError } = await supabaseAdmin.from("anexos").delete().in("id", alvo.map((row) => row.id));
+    if (delError) throw new Error(delError.message);
+  }
+  // limpa eventuais arquivos órfãos na pasta do médium
+  const { data: listed } = await supabaseAdmin.storage
+    .from("mediuns-docs")
+    .list(`${temploId}/emissoes/${mediunId}`, { limit: 100 });
+  const orfaos = (listed ?? []).filter((f) => f.name && f.id !== null);
+  if (orfaos.length > 0) {
+    await supabaseAdmin.storage
+      .from("mediuns-docs")
+      .remove(orfaos.map((f) => `${temploId}/emissoes/${mediunId}/${f.name}`));
+  }
+  return { removed: true };
+}
+
+
+
 
 export async function listMediuns(userId: string, temploId: string) {
   await assertTemploAccess(userId, temploId);
