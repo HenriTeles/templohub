@@ -155,11 +155,16 @@ function EditMedium() {
   }, [jandaAplica]);
 
 
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!s.templo?.id) return;
+  const save = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (busy) return;
+    if (!s.templo?.id) {
+      toast.error("Conta do templo ainda não carregou. Recarregue a página e tente novamente.");
+      return;
+    }
     setBusy(true);
     try {
+
       const payload: Record<string, unknown> = {
         ...form,
         foto_path: (form.foto_path as string) ?? null,
