@@ -577,12 +577,15 @@ function EditMedium() {
         </div>
       </form>
 
-      {/* Floating Save button */}
+      {/* Floating Save button — usa onClick (o atributo `form` falha em WebViews in-app) */}
       <button
-        type="submit"
-        form="mediun-edit-form"
+        type="button"
         disabled={busy}
-        className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-12 shadow-lg shadow-primary/30 hover:brightness-110 disabled:opacity-60 transition"
+        onClick={() => {
+          void save();
+        }}
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)" }}
+        className="fixed right-4 sm:right-6 z-50 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 h-14 text-base font-medium shadow-lg shadow-primary/30 hover:brightness-110 disabled:opacity-60 transition touch-manipulation"
         aria-label="Salvar"
       >
         {busy ? "Salvando…" : "Salvar"}
