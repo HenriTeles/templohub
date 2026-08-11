@@ -325,9 +325,22 @@ function MediumDetail() {
             <CardHeader><CardTitle className="text-base">Emissão</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {emissaoUrl ? (
-                <Button type="button" variant="outline" size="sm" onClick={() => void openEmissao()} disabled={openingEmissao}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => void openEmissao()} disabled={openingEmissao}>
                     <Download className="w-4 h-4 mr-1" /> {emissaoNome ?? "Baixar emissão"}
-                </Button>
+                  </Button>
+                  {(s.roles.includes("admin") || s.roles.includes("secretario") || s.roles.includes("super_admin")) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void removerEmissao()}
+                      disabled={removingEmissao}
+                    >
+                      {removingEmissao ? "Removendo…" : "Remover"}
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">—</p>
               )}
