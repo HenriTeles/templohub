@@ -7,6 +7,7 @@ import {
   getMediumEmissao,
   getMediumDetail,
   prepareMediumEmissaoUpload,
+  removeMediumEmissao,
 } from "@/lib/mediuns-read.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
@@ -53,11 +54,29 @@ function MediumDetail() {
   const [emissaoFile, setEmissaoFile] = useState<File | null>(null);
   const [uploadingEmissao, setUploadingEmissao] = useState(false);
   const [openingEmissao, setOpeningEmissao] = useState(false);
+  const [removingEmissao, setRemovingEmissao] = useState(false);
   const getDetail = useServerFn(getMediumDetail);
   const deleteRecord = useServerFn(deleteMediumRecord);
   const getEmissao = useServerFn(getMediumEmissao);
   const prepareEmissaoUpload = useServerFn(prepareMediumEmissaoUpload);
   const completeEmissaoUpload = useServerFn(completeMediumEmissaoUpload);
+  const removeEmissaoFn = useServerFn(removeMediumEmissao);
+
+  const removerEmissao = async () => {
+    if (!confirm("Remover a emissão deste médium?")) return;
+    setRemovingEmissao(true);
+    try {
+      await removeEmissaoFn({ data: { id } });
+      setEmissaoUrl(null);
+      setEmissaoNome(null);
+      setEmissaoFile(null);
+      toast.success("Emissão removida.");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível remover a emissão.");
+    } finally {
+      setRemovingEmissao(false);
+    }
+  };
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -324,9 +343,22 @@ function MediumDetail() {
             <CardHeader><CardTitle className="text-base">Emissão</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               {emissaoUrl ? (
-                <Button type="button" variant="outline" size="sm" onClick={() => void openEmissao()} disabled={openingEmissao}>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button type="button" variant="outline" size="sm" onClick={() => void openEmissao()} disabled={openingEmissao}>
                     <Download className="w-4 h-4 mr-1" /> {emissaoNome ?? "Baixar emissão"}
-                </Button>
+                  </Button>
+                  {(s.roles.includes("admin") || s.roles.includes("secretario") || s.roles.includes("super_admin")) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void removerEmissao()}
+                      disabled={removingEmissao}
+                    >
+                      {removingEmissao ? "Removendo…" : "Remover"}
+                    </Button>
+                  )}
+                </div>
               ) : (
                 <p className="text-sm text-muted-foreground">—</p>
               )}

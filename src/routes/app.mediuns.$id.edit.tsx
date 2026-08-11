@@ -4,7 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
 import { useSession } from "@/lib/session";
 import { saveMediumRecord } from "@/lib/mediums.functions";
-import { getMediumEmissao } from "@/lib/mediuns-read.functions";
+import {
+  getMediumEmissao,
+  prepareMediumEmissaoUpload,
+  completeMediumEmissaoUpload,
+  removeMediumEmissao,
+} from "@/lib/mediuns-read.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -74,6 +80,9 @@ function EditMedium() {
   const [emissaoAtual, setEmissaoAtual] = useState<{ emissaoUrl: string | null; emissaoNome: string | null } | null>(null);
   const saveMedium = useServerFn(saveMediumRecord);
   const loadEmissao = useServerFn(getMediumEmissao);
+  const prepareEmissaoUpload = useServerFn(prepareMediumEmissaoUpload);
+  const completeEmissaoUpload = useServerFn(completeMediumEmissaoUpload);
+  const removeEmissaoFn = useServerFn(removeMediumEmissao);
 
   const loadedIdRef = useRef<string | null>(null);
 
@@ -168,11 +177,38 @@ function EditMedium() {
           payload,
           customValues,
           foto: foto ? await fileToBase64Payload(foto) : null,
-          emissao: emissao ? await fileToBase64Payload(emissao) : null,
-          removerEmissao,
         },
       });
       const savedId = result.id;
+
+      // Emissão: upload direto ao Storage por URL assinada (nunca no corpo da requisição)
+      if (removerEmissao && !emissao) {
+        await removeEmissaoFn({ data: { id: savedId } });
+        setEmissaoAtual(null);
+        setRemoverEmissao(false);
+      } else if (emissao) {
+        const contentType = emissao.type || "application/octet-stream";
+        const prepared = await prepareEmissaoUpload({
+          data: { id: savedId, file: { name: emissao.name, contentType, size: emissao.size } },
+        });
+        const { error: uploadError } = await supabase.storage
+          .from("mediuns-docs")
+          .uploadToSignedUrl(prepared.path, prepared.token, emissao, { contentType });
+        if (uploadError) throw new Error(`Não foi possível enviar a emissão: ${uploadError.message}`);
+        await completeEmissaoUpload({
+          data: {
+            id: savedId,
+            upload: { path: prepared.path, name: emissao.name, contentType, size: emissao.size },
+          },
+        });
+        const confirmed = await loadEmissao({ data: { id: savedId } });
+        if (!confirmed.emissaoUrl) {
+          throw new Error("O arquivo foi enviado, mas não pôde ser confirmado para download.");
+        }
+        setEmissaoAtual(confirmed);
+        setEmissao(null);
+        setRemoverEmissao(false);
+      }
 
       toast.success(isNew ? "Médium cadastrado." : "Alterações salvas.");
       nav({ to: "/app/mediuns/$id", params: { id: savedId } });

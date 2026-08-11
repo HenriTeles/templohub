@@ -18,15 +18,6 @@ export const saveMediumRecord = createServerFn({ method: "POST" })
             base64: z.string().min(1),
           })
           .nullable(),
-        emissao: z
-          .object({
-            name: z.string().min(1).max(180),
-            contentType: z.string().min(1).max(120),
-            base64: z.string().min(1),
-          })
-          .nullable()
-          .default(null),
-        removerEmissao: z.boolean().default(false),
       })
       .parse(input),
   )
@@ -92,61 +83,10 @@ export const saveMediumRecord = createServerFn({ method: "POST" })
       if (!updated) throw new Error("Médium não encontrado neste templo.");
     }
 
-    // ---- Emissão (PDF/JPG) armazenada no bucket privado "mediuns-docs" ----
-    if (data.removerEmissao || data.emissao) {
-      const { data: antigos } = await supabaseAdmin
-        .from("anexos")
-        .select("id, storage_path")
-        .eq("mediun_id", savedId)
-        .like("storage_path", "%/emissoes/%");
-      const rowsAntigos = (antigos ?? []) as Array<{ id: string; storage_path: string }>;
-      if (rowsAntigos.length > 0) {
-        await supabaseAdmin.storage.from("mediuns-docs").remove(rowsAntigos.map((r) => r.storage_path));
-        await supabaseAdmin
-          .from("anexos")
-          .delete()
-          .in("id", rowsAntigos.map((r) => r.id));
-      }
-    }
+    // A emissão é enviada diretamente ao Storage por URL assinada
+    // (prepareMediumEmissaoUpload / completeMediumEmissaoUpload).
 
-    if (data.emissao) {
-      const tipo = (data.emissao.contentType || "").toLowerCase();
-      const nomeLower = data.emissao.name.toLowerCase();
-      const tipoOk =
-        tipo === "application/pdf" ||
-        tipo === "image/jpeg" ||
-        tipo === "image/jpg" ||
-        /\.(pdf|jpe?g)$/.test(nomeLower);
-      if (!tipoOk) throw new Error("A emissão deve ser um arquivo PDF, JPG ou JPEG.");
 
-      const estimatedBytes = Math.floor((data.emissao.base64.length * 3) / 4);
-      if (estimatedBytes > 8 * 1024 * 1024) throw new Error("A emissão deve ter no máximo 8 MB.");
-
-      const binary = atob(data.emissao.base64);
-      const bytes = new Uint8Array(binary.length);
-      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
-
-      const safeName = data.emissao.name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 140) || "emissao.pdf";
-      const storagePath = `${data.temploId}/emissoes/${savedId}/${crypto.randomUUID()}-${safeName}`;
-      const { error: uploadError } = await supabaseAdmin.storage
-        .from("mediuns-docs")
-        .upload(storagePath, bytes, {
-          contentType: tipo || "application/octet-stream",
-          upsert: true,
-        });
-      if (uploadError) throw new Error(uploadError.message);
-
-      const { error: anexoError } = await supabaseAdmin.from("anexos").insert({
-        templo_id: data.temploId,
-        mediun_id: savedId,
-        nome: data.emissao.name.slice(0, 180),
-        storage_path: storagePath,
-        mime_type: tipo || null,
-        size_bytes: estimatedBytes,
-        created_by: context.userId,
-      });
-      if (anexoError) throw new Error(anexoError.message);
-    }
 
 
 
