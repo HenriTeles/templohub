@@ -80,6 +80,9 @@ function EditMedium() {
   const [emissaoAtual, setEmissaoAtual] = useState<{ emissaoUrl: string | null; emissaoNome: string | null } | null>(null);
   const saveMedium = useServerFn(saveMediumRecord);
   const loadEmissao = useServerFn(getMediumEmissao);
+  const prepareEmissaoUpload = useServerFn(prepareMediumEmissaoUpload);
+  const completeEmissaoUpload = useServerFn(completeMediumEmissaoUpload);
+  const removeEmissaoFn = useServerFn(removeMediumEmissao);
 
   const loadedIdRef = useRef<string | null>(null);
 
