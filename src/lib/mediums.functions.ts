@@ -19,8 +19,6 @@ export const saveMediumRecord = createServerFn({ method: "POST" })
           })
           .nullable(),
       })
-
-      })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
