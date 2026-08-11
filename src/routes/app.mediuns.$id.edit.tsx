@@ -155,11 +155,16 @@ function EditMedium() {
   }, [jandaAplica]);
 
 
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!s.templo?.id) return;
+  const save = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (busy) return;
+    if (!s.templo?.id) {
+      toast.error("Conta do templo ainda não carregou. Recarregue a página e tente novamente.");
+      return;
+    }
     setBusy(true);
     try {
+
       const payload: Record<string, unknown> = {
         ...form,
         foto_path: (form.foto_path as string) ?? null,
@@ -213,7 +218,14 @@ function EditMedium() {
       toast.success(isNew ? "Médium cadastrado." : "Alterações salvas.");
       nav({ to: "/app/mediuns/$id", params: { id: savedId } });
     } catch (err) {
-      toast.error((err as Error).message);
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === "string"
+            ? err
+            : "Falha ao salvar. Verifique sua conexão e tente novamente.";
+      toast.error(message || "Falha ao salvar. Tente novamente.");
+      console.error("[mediuns/edit] save failed", err);
     } finally {
       setBusy(false);
     }
@@ -239,7 +251,7 @@ function EditMedium() {
       <div className="mb-4">
         <h1 className="text-2xl font-semibold">{isNew ? "Novo Médium" : "Editar Médium"}</h1>
       </div>
-      <form id="mediun-edit-form" onSubmit={save} className="space-y-4 pb-24">
+      <form id="mediun-edit-form" onSubmit={save} className="space-y-4 pb-40">
         {/* ============================ 1. DADOS GERAIS ============================ */}
         <Card>
           <CardHeader><CardTitle className="text-base">Dados Gerais</CardTitle></CardHeader>
@@ -252,12 +264,37 @@ function EditMedium() {
               <Label>Emissão (PDF, JPG ou JPEG)</Label>
               <Input
                 type="file"
-                accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg"
+                accept="application/pdf,image/jpeg,.pdf,.jpg,.jpeg"
                 onChange={(e) => {
-                  setEmissao(e.target.files?.[0] ?? null);
+                  const file = e.target.files?.[0] ?? null;
+                  if (file) {
+                    const nome = file.name.toLowerCase();
+                    const tipoOk =
+                      file.type === "application/pdf" ||
+                      file.type === "image/jpeg" ||
+                      /\.(pdf|jpe?g)$/.test(nome);
+                    if (!tipoOk) {
+                      toast.error("Formato inválido. Envie um arquivo PDF, JPG ou JPEG.");
+                      e.target.value = "";
+                      setEmissao(null);
+                      return;
+                    }
+                    if (file.size > 8 * 1024 * 1024) {
+                      toast.error("O arquivo deve ter no máximo 8 MB.");
+                      e.target.value = "";
+                      setEmissao(null);
+                      return;
+                    }
+                  }
+                  setEmissao(file);
                   setRemoverEmissao(false);
                 }}
               />
+              {emissao && (
+                <p className="text-xs text-muted-foreground break-all">
+                  Selecionado: {emissao.name} — toque em “Salvar” para enviar.
+                </p>
+              )}
               {emissaoAtual?.emissaoUrl && !emissao && (
                 <div className="flex items-center gap-3 text-sm">
                   <a
@@ -565,12 +602,15 @@ function EditMedium() {
         </div>
       </form>
 
-      {/* Floating Save button */}
+      {/* Floating Save button — usa onClick (o atributo `form` falha em WebViews in-app) */}
       <button
-        type="submit"
-        form="mediun-edit-form"
+        type="button"
         disabled={busy}
-        className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-5 h-12 shadow-lg shadow-primary/30 hover:brightness-110 disabled:opacity-60 transition"
+        onClick={() => {
+          void save();
+        }}
+        style={{ bottom: "calc(env(safe-area-inset-bottom, 0px) + 1.5rem)" }}
+        className="fixed right-4 sm:right-6 z-50 inline-flex items-center gap-2 rounded-full bg-primary text-primary-foreground px-6 h-14 text-base font-medium shadow-lg shadow-primary/30 hover:brightness-110 disabled:opacity-60 transition touch-manipulation"
         aria-label="Salvar"
       >
         {busy ? "Salvando…" : "Salvar"}
