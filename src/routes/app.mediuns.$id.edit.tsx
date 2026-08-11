@@ -4,7 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { db } from "@/lib/db";
 import { useSession } from "@/lib/session";
 import { saveMediumRecord } from "@/lib/mediums.functions";
-import { getMediumEmissao } from "@/lib/mediuns-read.functions";
+import {
+  getMediumEmissao,
+  prepareMediumEmissaoUpload,
+  completeMediumEmissaoUpload,
+  removeMediumEmissao,
+} from "@/lib/mediuns-read.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
