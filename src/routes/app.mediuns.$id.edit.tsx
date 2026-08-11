@@ -177,11 +177,38 @@ function EditMedium() {
           payload,
           customValues,
           foto: foto ? await fileToBase64Payload(foto) : null,
-          emissao: emissao ? await fileToBase64Payload(emissao) : null,
-          removerEmissao,
         },
       });
       const savedId = result.id;
+
+      // Emissão: upload direto ao Storage por URL assinada (nunca no corpo da requisição)
+      if (removerEmissao && !emissao) {
+        await removeEmissaoFn({ data: { id: savedId } });
+        setEmissaoAtual(null);
+        setRemoverEmissao(false);
+      } else if (emissao) {
+        const contentType = emissao.type || "application/octet-stream";
+        const prepared = await prepareEmissaoUpload({
+          data: { id: savedId, file: { name: emissao.name, contentType, size: emissao.size } },
+        });
+        const { error: uploadError } = await supabase.storage
+          .from("mediuns-docs")
+          .uploadToSignedUrl(prepared.path, prepared.token, emissao, { contentType });
+        if (uploadError) throw new Error(`Não foi possível enviar a emissão: ${uploadError.message}`);
+        await completeEmissaoUpload({
+          data: {
+            id: savedId,
+            upload: { path: prepared.path, name: emissao.name, contentType, size: emissao.size },
+          },
+        });
+        const confirmed = await loadEmissao({ data: { id: savedId } });
+        if (!confirmed.emissaoUrl) {
+          throw new Error("O arquivo foi enviado, mas não pôde ser confirmado para download.");
+        }
+        setEmissaoAtual(confirmed);
+        setEmissao(null);
+        setRemoverEmissao(false);
+      }
 
       toast.success(isNew ? "Médium cadastrado." : "Alterações salvas.");
       nav({ to: "/app/mediuns/$id", params: { id: savedId } });
