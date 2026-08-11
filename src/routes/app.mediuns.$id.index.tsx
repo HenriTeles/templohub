@@ -7,6 +7,7 @@ import {
   getMediumEmissao,
   getMediumDetail,
   prepareMediumEmissaoUpload,
+  removeMediumEmissao,
 } from "@/lib/mediuns-read.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/lib/session";
