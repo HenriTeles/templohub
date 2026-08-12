@@ -104,24 +104,12 @@ export const adminSetUserPassword = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const target = data.email.trim().toLowerCase();
 
-    // Não depende mais de SUPABASE_SERVICE_ROLE_KEY no runtime do app.
-    // O insert autenticado aciona um trigger SECURITY DEFINER no banco, que
-    // valida o Administrador Geral e aplica a senha diretamente em auth.users.
-    const { error } = await (context.supabase as any)
-      .from("admin_password_resets")
-      .insert({ target_email: target, new_password: data.password });
+    // Apenas o Administrador Geral pode trocar senhas.
+    await assertSuperAdmin(context.userId);
 
-    if (error) {
-      const message = error.message || "Falha ao trocar a senha.";
-      console.error("[adminSetUserPassword] RPC via trigger falhou:", message);
-      if (message.includes("admin_password_resets") && message.includes("does not exist")) {
-        throw new Error("A estrutura segura de troca de senha ainda não foi aplicada no banco. Execute o script fix-troca-senha-sem-service-role-2026-07-20.sql no Supabase.");
-      }
-      if (message.toLowerCase().includes("forbidden")) {
-        throw new Error("Apenas o Administrador Geral pode trocar senhas de usuários.");
-      }
-      throw new Error(message);
-    }
+    // A senha nunca é gravada em nenhuma tabela: vai direto para a Admin API.
+    const { adminUpdatePasswordByEmail } = await import("./templo-admin.server");
+    await adminUpdatePasswordByEmail(target, data.password);
 
     return { ok: true, email: target };
   });
