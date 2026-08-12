@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { assertSuperAdmin } from "./templo-admin.server";
+import { assertSuperAdmin, adminUpdatePasswordByEmail } from "./templo-admin.server";
 
 // Todas as chamadas administrativas passam por server functions autenticadas.
 // O backend usa o admin client (service_role) para executar as SECURITY DEFINER
@@ -108,7 +108,6 @@ export const adminSetUserPassword = createServerFn({ method: "POST" })
     await assertSuperAdmin(context.userId);
 
     // A senha nunca é gravada em nenhuma tabela: vai direto para a Admin API.
-    const { adminUpdatePasswordByEmail } = await import("./templo-admin.server");
     await adminUpdatePasswordByEmail(target, data.password);
 
     return { ok: true, email: target };
