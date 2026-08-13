@@ -3,9 +3,12 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { assertSuperAdmin, adminUpdatePasswordByEmail } from "./templo-admin.server";
 
-// Todas as chamadas administrativas passam por server functions autenticadas.
-// O backend usa o admin client (service_role) para executar as SECURITY DEFINER
-// que agora estão revogadas de authenticated.
+// Fonte única de verdade de autorização das RPCs administrativas:
+// assertSuperAdmin(context.userId) AQUI, antes de qualquer chamada. As funções
+// approve/reject/update/delete_templo são SECURITY DEFINER executáveis apenas
+// por service_role (ver supabase/manual/rpc-admin-service-role-only-2026-08-13.sql)
+// e não checam auth.uid() — com a chave de serviço auth.uid() é NULL.
+
 
 
 export const approveTemplo = createServerFn({ method: "POST" })
