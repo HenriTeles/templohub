@@ -339,7 +339,7 @@ function BrandingCard() {
           <LogoUploader
             bucket="app-branding"
             currentPath={logoPath}
-            buildKey={(fileName) => `logo-${Date.now()}-${fileName}`}
+            buildKey={(fileName) => `global/logo-${Date.now()}-${fileName}`}
             onSaved={save}
             label="Logo do sistema"
             helper="Aparece no menu lateral para todos os usuários."
