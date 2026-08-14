@@ -18,6 +18,7 @@ import { Route as AppDashboardRouteImport } from './routes/app.dashboard'
 import { Route as AppConfiguracoesRouteImport } from './routes/app.configuracoes'
 import { Route as AppBuscarRouteImport } from './routes/app.buscar'
 import { Route as AppAdminRouteImport } from './routes/app.admin'
+import { Route as AppAcervoRouteImport } from './routes/app.acervo'
 import { Route as AppMediunsIndexRouteImport } from './routes/app.mediuns.index'
 import { Route as AppMediunsNewRouteImport } from './routes/app.mediuns.new'
 import { Route as AppMediunsIdIndexRouteImport } from './routes/app.mediuns.$id.index'
@@ -68,6 +69,11 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAcervoRoute = AppAcervoRouteImport.update({
+  id: '/acervo',
+  path: '/acervo',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppMediunsIndexRoute = AppMediunsIndexRouteImport.update({
   id: '/mediuns/',
   path: '/mediuns/',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/acervo': typeof AppAcervoRoute
   '/app/admin': typeof AppAdminRoute
   '/app/buscar': typeof AppBuscarRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/acervo': typeof AppAcervoRoute
   '/app/admin': typeof AppAdminRoute
   '/app/buscar': typeof AppBuscarRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/app/acervo': typeof AppAcervoRoute
   '/app/admin': typeof AppAdminRoute
   '/app/buscar': typeof AppBuscarRoute
   '/app/configuracoes': typeof AppConfiguracoesRoute
@@ -143,6 +152,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/reset-password'
+    | '/app/acervo'
     | '/app/admin'
     | '/app/buscar'
     | '/app/configuracoes'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/reset-password'
+    | '/app/acervo'
     | '/app/admin'
     | '/app/buscar'
     | '/app/configuracoes'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/onboarding'
     | '/reset-password'
+    | '/app/acervo'
     | '/app/admin'
     | '/app/buscar'
     | '/app/configuracoes'
@@ -256,6 +268,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/acervo': {
+      id: '/app/acervo'
+      path: '/acervo'
+      fullPath: '/app/acervo'
+      preLoaderRoute: typeof AppAcervoRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/mediuns/': {
       id: '/app/mediuns/'
       path: '/mediuns'
@@ -288,6 +307,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppAcervoRoute: typeof AppAcervoRoute
   AppAdminRoute: typeof AppAdminRoute
   AppBuscarRoute: typeof AppBuscarRoute
   AppConfiguracoesRoute: typeof AppConfiguracoesRoute
@@ -299,6 +319,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppAcervoRoute: AppAcervoRoute,
   AppAdminRoute: AppAdminRoute,
   AppBuscarRoute: AppBuscarRoute,
   AppConfiguracoesRoute: AppConfiguracoesRoute,

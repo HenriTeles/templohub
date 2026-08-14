@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { LayoutDashboard, Users, Search, Settings, ShieldCheck, LogOut, Mail, Menu } from "lucide-react";
+import { LayoutDashboard, Users, Search, Settings, ShieldCheck, LogOut, Mail, Menu, FolderOpen } from "lucide-react";
 import { db as supabase } from "@/lib/db";
 import { getBrandingUrls } from "@/lib/mediuns-read.functions";
 
@@ -13,9 +13,11 @@ import { AccountLoadError } from "@/components/AccountLoadError";
 const NAV = [
   { to: "/app/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/app/mediuns", label: "Médiuns", icon: Users },
+  { to: "/app/acervo", label: "Acervo", icon: FolderOpen },
   { to: "/app/buscar", label: "Buscar", icon: Search },
   { to: "/app/configuracoes", label: "Configurações", icon: Settings },
 ] as const;
+
 
 const ROLE_LABEL: Record<Role, string> = {
   super_admin: "Administrador Geral",
