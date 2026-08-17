@@ -76,7 +76,7 @@ export async function listCustomFields(userId: string, scope: CustomFieldScope, 
   query = target === null ? query.is("templo_id", null) : query.eq("templo_id", target);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return JSON.parse(JSON.stringify(data ?? [])) as Array<Record<string, unknown>>;
+  return JSON.parse(JSON.stringify(data ?? [])) as Array<Record<string, string | number | boolean | null>>;
 }
 
 async function readField(id: string) {
