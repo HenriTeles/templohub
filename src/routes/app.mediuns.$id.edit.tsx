@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { useSession } from "@/lib/session";
 import { saveMediumRecord } from "@/lib/mediums.functions";
 import {
+  getMediumEditData,
   getMediumEmissao,
   prepareMediumEmissaoUpload,
   completeMediumEmissaoUpload,
@@ -79,6 +80,7 @@ function EditMedium() {
   const [removerEmissao, setRemoverEmissao] = useState(false);
   const [emissaoAtual, setEmissaoAtual] = useState<{ emissaoUrl: string | null; emissaoNome: string | null } | null>(null);
   const saveMedium = useServerFn(saveMediumRecord);
+  const loadEditData = useServerFn(getMediumEditData);
   const loadEmissao = useServerFn(getMediumEmissao);
   const prepareEmissaoUpload = useServerFn(prepareMediumEmissaoUpload);
   const completeEmissaoUpload = useServerFn(completeMediumEmissaoUpload);
@@ -91,28 +93,17 @@ function EditMedium() {
     if (loadedIdRef.current === id) return;
     loadedIdRef.current = id;
     (async () => {
-      const [{ data: ts }, { data: cf }] = await Promise.all([
-        db.from("trinos").select("id, nome").order("nome"),
-        db.from("medium_custom_fields")
-          .select("*")
-          .or(`templo_id.is.null,templo_id.eq.${s.templo!.id}`)
-          .order("ordem")
-          .order("created_at"),
-      ]);
-      setTrinos((ts ?? []) as Option[]);
-      setCustomFields((cf ?? []) as CustomField[]);
+      try {
+        const res = await loadEditData({ data: { temploId: s.templo!.id, id: isNew ? null : id } });
+        setTrinos(res.trinos as Option[]);
+        setCustomFields(res.customFields as unknown as CustomField[]);
+        if (res.medium) setForm(res.medium as Form);
+        setCustomValues(res.customValues);
+      } catch (err) {
+        toast.error((err as Error).message || "Não foi possível carregar os dados do médium.");
+        return;
+      }
       if (!isNew) {
-        const { data } = await db.from("mediuns").select("*").eq("id", id).maybeSingle();
-        if (data) setForm(data as Form);
-        const { data: vals } = await db
-          .from("medium_custom_values")
-          .select("field_id, valor")
-          .eq("mediun_id", id);
-        const map: Record<string, string> = {};
-        for (const v of (vals ?? []) as Array<{ field_id: string; valor: string | null }>) {
-          if (v.valor != null) map[v.field_id] = v.valor;
-        }
-        setCustomValues(map);
         try {
           setEmissaoAtual(await loadEmissao({ data: { id } }));
         } catch {
