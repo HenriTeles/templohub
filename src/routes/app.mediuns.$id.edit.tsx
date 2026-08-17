@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { db } from "@/lib/db";
 import { useSession } from "@/lib/session";
 import { saveMediumRecord } from "@/lib/mediums.functions";
 import {
