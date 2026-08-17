@@ -462,3 +462,51 @@ export async function readMediumTemploId(id: string): Promise<string> {
   if (!row) throw new Error("Médium não encontrado.");
   return row.templo_id;
 }
+
+/**
+ * Dados iniciais da tela de Edição do médium (trinos, campos personalizados,
+ * valores e o próprio registro). Substitui as leituras diretas com a chave pública.
+ */
+export async function readMediumEditData(userId: string, temploId: string, mediunId: string | null) {
+  await assertTemploAccess(userId, temploId);
+
+  const { data: trinos } = await supabaseAdmin
+    .from("trinos")
+    .select("id, nome")
+    .or(`templo_id.is.null,templo_id.eq.${temploId}`)
+    .order("nome");
+
+  const { data: customFields } = await supabaseAdmin
+    .from("medium_custom_fields")
+    .select("*")
+    .or(`templo_id.is.null,templo_id.eq.${temploId}`)
+    .order("ordem")
+    .order("created_at");
+
+  let medium: Record<string, string | number | boolean | null> | null = null;
+  const customValues: Record<string, string> = {};
+
+  if (mediunId) {
+    const { data, error } = await supabaseAdmin.from("mediuns").select("*").eq("id", mediunId).maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data) throw new Error("Médium não encontrado.");
+    const row = data as Record<string, unknown> & { templo_id: string };
+    if (row.templo_id !== temploId) await assertTemploAccess(userId, row.templo_id);
+    medium = JSON.parse(JSON.stringify(row)) as Record<string, string | number | boolean | null>;
+
+    const { data: values } = await supabaseAdmin
+      .from("medium_custom_values")
+      .select("field_id, valor")
+      .eq("mediun_id", mediunId);
+    for (const v of (values ?? []) as Array<{ field_id: string; valor: string | null }>) {
+      if (v.valor != null) customValues[v.field_id] = v.valor;
+    }
+  }
+
+  return {
+    trinos: JSON.parse(JSON.stringify(trinos ?? [])) as Array<{ id: string; nome: string }>,
+    customFields: JSON.parse(JSON.stringify(customFields ?? [])) as Array<Record<string, string | number | boolean | null>>,
+    medium,
+    customValues,
+  };
+}

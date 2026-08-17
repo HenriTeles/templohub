@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
-import { db } from "@/lib/db";
+import { useServerFn } from "@tanstack/react-start";
+import {
+  listCustomFieldsFn,
+  createCustomFieldFn,
+  updateCustomFieldFn,
+  deleteCustomFieldFn,
+} from "@/lib/custom-fields.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -66,14 +72,19 @@ export function CustomFieldsManager({
   const [loading, setLoading] = useState(true);
   const [dialog, setDialog] = useState<DialogState>(null);
 
+  const listFields = useServerFn(listCustomFieldsFn);
+  const deleteField = useServerFn(deleteCustomFieldFn);
+
   const load = async () => {
     setLoading(true);
-    let q = db.from("medium_custom_fields").select("*").order("ordem").order("created_at");
-    if (scope === "global") q = q.is("templo_id", null);
-    else if (temploId) q = q.eq("templo_id", temploId);
-    const { data } = await q;
-    setFields((data ?? []) as CustomField[]);
-    setLoading(false);
+    try {
+      const res = await listFields({ data: { scope, temploId: temploId ?? null } });
+      setFields(res.fields as unknown as CustomField[]);
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -83,11 +94,12 @@ export function CustomFieldsManager({
 
   const remove = async (id: string) => {
     if (!confirm("Excluir este campo? Todos os valores preenchidos serão apagados.")) return;
-    const { error } = await db.from("medium_custom_fields").delete().eq("id", id);
-    if (error) toast.error(error.message);
-    else {
+    try {
+      await deleteField({ data: { id } });
       toast.success("Campo removido.");
       load();
+    } catch (err) {
+      toast.error((err as Error).message);
     }
   };
 
@@ -221,6 +233,8 @@ function FieldDialog({
   const [opcoes, setOpcoes] = useState((editing?.opcoes ?? []).join("\n"));
   const [obrigatorio, setObrigatorio] = useState(editing?.obrigatorio ?? false);
   const [busy, setBusy] = useState(false);
+  const createField = useServerFn(createCustomFieldFn);
+  const updateField = useServerFn(updateCustomFieldFn);
 
   // Auto-slug from label until the user manually edits the chave.
   useEffect(() => {
@@ -240,27 +254,27 @@ function FieldDialog({
     }
 
     setBusy(true);
-    const payload: Record<string, unknown> = {
+    const field = {
       label: label.trim(),
       chave: chave.trim(),
       tipo,
       obrigatorio,
-      opcoes: tipo === "select"
-        ? opcoes.split("\n").map((s) => s.trim()).filter(Boolean)
-        : null,
+      opcoes:
+        tipo === "select" ? opcoes.split("\n").map((o) => o.trim()).filter(Boolean) : null,
+      parentFieldId: parentId,
     };
 
-    let error;
-    if (editing) {
-      ({ error } = await db.from("medium_custom_fields").update(payload).eq("id", editing.id));
-    } else {
-      payload.parent_field_id = parentId;
-      payload.templo_id = scope === "global" ? null : temploId;
-      ({ error } = await db.from("medium_custom_fields").insert(payload));
+    try {
+      if (editing) {
+        await updateField({ data: { id: editing.id, field } });
+      } else {
+        await createField({ data: { scope, temploId: temploId ?? null, field } });
+      }
+    } catch (err) {
+      setBusy(false);
+      return toast.error((err as Error).message);
     }
-
     setBusy(false);
-    if (error) return toast.error(error.message);
     toast.success(editing ? "Campo atualizado." : "Campo criado.");
     onSaved();
   };

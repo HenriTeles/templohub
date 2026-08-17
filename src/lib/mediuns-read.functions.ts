@@ -86,3 +86,13 @@ export const removeMediumEmissao = createServerFn({ method: "POST" })
     return deleteMediumEmissao(context.userId, data.id);
   });
 
+
+export const getMediumEditData = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ temploId: z.string().uuid(), id: z.string().uuid().nullable() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    const { readMediumEditData } = await import("./mediuns-read.server");
+    return readMediumEditData(context.userId, data.temploId, data.id);
+  });
