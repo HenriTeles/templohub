@@ -17,6 +17,18 @@ export type CustomFieldInput = {
 
 export type CustomFieldScope = "global" | "templo";
 
+export type CustomFieldRow = {
+  id: string;
+  templo_id: string | null;
+  parent_field_id: string | null;
+  label: string;
+  chave: string;
+  tipo: CustomFieldTipo;
+  opcoes: string[] | null;
+  ordem: number;
+  obrigatorio: boolean;
+};
+
 const KEY_RE = /^[a-z0-9_]+$/;
 
 function sanitize(input: CustomFieldInput) {
@@ -76,7 +88,7 @@ export async function listCustomFields(userId: string, scope: CustomFieldScope, 
   query = target === null ? query.is("templo_id", null) : query.eq("templo_id", target);
   const { data, error } = await query;
   if (error) throw new Error(error.message);
-  return JSON.parse(JSON.stringify(data ?? [])) as Array<Record<string, string | number | boolean | null>>;
+  return JSON.parse(JSON.stringify(data ?? [])) as CustomFieldRow[];
 }
 
 async function readField(id: string) {
