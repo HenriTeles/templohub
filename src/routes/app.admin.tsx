@@ -303,27 +303,7 @@ function AdminPage() {
 }
 
 function BrandingCard() {
-  const [logoPath, setLogoPath] = useState<string | null>(null);
-  const [loaded, setLoaded] = useState(false);
-
-  const load = async () => {
-    const { data } = await db.from("app_settings").select("logo_path").eq("id", 1).maybeSingle();
-    setLogoPath((data as { logo_path: string | null } | null)?.logo_path ?? null);
-    setLoaded(true);
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const save = async (path: string | null) => {
-    const { error } = await db
-      .from("app_settings")
-      .update({ logo_path: path, updated_at: new Date().toISOString() })
-      .eq("id", 1);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
-    setLogoPath(path);
+  const save = async () => {
     if (typeof window !== "undefined") {
       window.dispatchEvent(new CustomEvent("templohub:branding-logo-updated"));
     }
@@ -335,18 +315,12 @@ function BrandingCard() {
         <CardTitle className="text-base">Identidade visual do TemploHub</CardTitle>
       </CardHeader>
       <CardContent>
-        {loaded ? (
-          <LogoUploader
-            bucket="app-branding"
-            currentPath={logoPath}
-            buildKey={(fileName) => `global/logo-${Date.now()}-${fileName}`}
-            onSaved={save}
-            label="Logo do sistema"
-            helper="Aparece no menu lateral para todos os usuários."
-          />
-        ) : (
-          <p className="text-sm text-muted-foreground">Carregando…</p>
-        )}
+        <LogoUploader
+          target="app"
+          onSaved={save}
+          label="Logo do sistema"
+          helper="Aparece no menu lateral para todos os usuários."
+        />
       </CardContent>
     </Card>
   );

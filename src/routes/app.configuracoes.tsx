@@ -79,12 +79,7 @@ function TempleLogoCard() {
   const s = useSession();
   if (!s.templo?.id) return null;
 
-  const save = async (path: string | null) => {
-    const { error } = await db.from("templos").update({ logo_path: path }).eq("id", s.templo!.id);
-    if (error) {
-      toast.error(error.message);
-      return;
-    }
+  const save = async () => {
     await s.refresh();
   };
 
@@ -95,13 +90,7 @@ function TempleLogoCard() {
         <CardDescription>Aparece no menu lateral para todos os membros deste templo.</CardDescription>
       </CardHeader>
       <CardContent>
-        <LogoUploader
-          bucket="templos-logos"
-          currentPath={s.templo.logo_path}
-          buildKey={(fileName) => `${s.templo!.id}/logo-${Date.now()}-${fileName}`}
-          onSaved={save}
-          label="Foto"
-        />
+        <LogoUploader target="templo" onSaved={save} label="Foto" />
       </CardContent>
     </Card>
   );
