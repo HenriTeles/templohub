@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { validateMediumDoutrina } from "@/lib/medium-fields";
 
 export const saveMediumRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -41,6 +42,10 @@ export const saveMediumRecord = createServerFn({ method: "POST" })
     for (const key of Object.keys(payload)) if (payload[key] === "") payload[key] = null;
     payload.templo_id = data.temploId;
     payload.created_by = context.userId;
+
+    // Mesma validação de combinações da tela, aplicada também no servidor.
+    const doutrinaErrors = validateMediumDoutrina(payload);
+    if (doutrinaErrors.length > 0) throw new Error(doutrinaErrors.join(" "));
 
     if (data.foto) {
       const estimatedBytes = Math.floor((data.foto.base64.length * 3) / 4);
