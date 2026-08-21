@@ -42,6 +42,10 @@ export const saveMediumRecord = createServerFn({ method: "POST" })
     payload.templo_id = data.temploId;
     payload.created_by = context.userId;
 
+    // Mesma validação de combinações da tela, aplicada também no servidor.
+    const doutrinaErrors = validateMediumDoutrina(payload);
+    if (doutrinaErrors.length > 0) throw new Error(doutrinaErrors.join(" "));
+
     if (data.foto) {
       const estimatedBytes = Math.floor((data.foto.base64.length * 3) / 4);
       if (estimatedBytes > 8 * 1024 * 1024) throw new Error("A foto deve ter no máximo 8 MB.");
