@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import { validateMediumDoutrina } from "@/lib/medium-fields";
 
 export const saveMediumRecord = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
