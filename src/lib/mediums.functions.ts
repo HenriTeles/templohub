@@ -51,6 +51,13 @@ export const saveMediumRecord = createServerFn({ method: "POST" })
       const estimatedBytes = Math.floor((data.foto.base64.length * 3) / 4);
       if (estimatedBytes > 8 * 1024 * 1024) throw new Error("A foto deve ter no máximo 8 MB.");
 
+      const allowedPhotoTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif", "image/svg+xml"];
+      const photoType = data.foto.contentType.toLowerCase();
+      const photoExtOk = /\.(png|jpe?g|webp|gif|svg)$/i.test(data.foto.name);
+      if (!allowedPhotoTypes.includes(photoType) || !photoExtOk) {
+        throw new Error("Envie uma imagem PNG, JPG, WEBP, GIF ou SVG.");
+      }
+
       const binary = atob(data.foto.base64);
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
